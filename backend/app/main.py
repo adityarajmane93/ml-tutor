@@ -90,3 +90,17 @@ def get_events():
     db.close()
 
     return result
+
+@app.delete("/events")
+def clear_events():
+    db: Session = SessionLocal()
+
+    db.query(EventModel).delete()
+
+    db.commit()
+
+    db.close()
+
+    return {
+        "status": "all events deleted"
+    }

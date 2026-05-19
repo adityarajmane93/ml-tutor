@@ -1,25 +1,21 @@
-import TrackedButton
-from "./components/TrackedButton";
+import PipelineCanvas
+from "./components/PipelineCanvas";
 
 function App() {
   return (
     <div
       style={{
-        padding: "2rem",
+        padding: "1rem",
         fontFamily: "Arial",
       }}
     >
       <h1>ML-Tutor</h1>
 
       <p>
-        Experimental Telemetry Platform
+        Visual ML Sandbox
       </p>
 
-      <TrackedButton
-        eventName="RUN_PIPELINE"
-      >
-        Run Pipeline
-      </TrackedButton>
+      <PipelineCanvas />
     </div>
   );
 }

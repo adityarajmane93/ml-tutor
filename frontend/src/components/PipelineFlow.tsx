@@ -5,7 +5,6 @@ import {
   MiniMap,
   useNodesState,
   useEdgesState,
-  addEdge,
   type Connection,
 } from "reactflow";
 
@@ -16,9 +15,6 @@ import {
 
 import "reactflow/dist/style.css";
 
-import { logEvent }
-from "../services/logger";
-
 import {
   initialNodes,
   initialEdges,
@@ -27,11 +23,30 @@ import {
 import { createNode }
 from "../flow/nodeFactory";
 
+import {
+  handleConnect,
+  handleNodeDragStop,
+  handleNodesDelete,
+  handleEdgesDelete,
+} from "../flow/flowHandlers";
+
+import { serializePipeline }
+from "../flow/pipelineSerializer";
+
 import NodeToolbar
 from "./NodeToolbar";
 
 import { nodeTypes }
 from "../nodes/nodeTypes";
+
+import { logEvent }
+from "../services/logger";
+
+import { logPipelineSnapshot }
+from "../services/pipelineSnapshot";
+
+import { executePipeline }
+from "../services/pipelineExecutor";
 
 export default function PipelineFlow() {
 
@@ -52,42 +67,18 @@ export default function PipelineFlow() {
   const onConnect = useCallback(
     async (params: Connection) => {
 
-      const edgeExists =
-        edges.some(
-          (edge) =>
-            (
-              edge.source === params.source &&
-              edge.target === params.target
-            ) ||
-
-            (
-              edge.source === params.target &&
-              edge.target === params.source
-            )
-        );
-
-      if (edgeExists) {
-        return;
-      }
-
-      setEdges((eds) =>
-        addEdge(params, eds)
-      );
-
-      await logEvent(
-        "PIPELINE_EVENT",
-        "EDGE_CREATED",
-        {
-          source: params.source,
-          target: params.target,
-        }
+      await handleConnect(
+        params,
+        edges,
+        nodes,
+        setEdges
       );
     },
 
-    [edges, setEdges]
+    [edges, nodes, setEdges]
   );
 
-  function addNewNode(
+  async function addNewNode(
     nodeType: string
   ) {
 
@@ -108,12 +99,14 @@ export default function PipelineFlow() {
       }
     );
 
-    setNodes((nds) => [
-      ...nds,
+    const updatedNodes = [
+      ...nodes,
       newNode,
-    ]);
+    ];
 
-    logEvent(
+    setNodes(updatedNodes);
+
+    await logEvent(
       "PIPELINE_EVENT",
       "NODE_CREATED",
       {
@@ -121,7 +114,46 @@ export default function PipelineFlow() {
         nodeType,
       }
     );
+
+    await logPipelineSnapshot(
+      updatedNodes,
+      edges
+    );
   }
+
+  function testSerialization() {
+
+    console.log(
+      serializePipeline(
+        nodes,
+        edges
+      )
+    );
+  }
+
+  async function runPipeline() {
+
+  const serialized =
+    serializePipeline(
+      nodes,
+      edges
+    );
+
+  console.log(
+    "SERIALIZED:",
+    serialized
+  );
+
+  const result =
+    await executePipeline(
+      serialized
+    );
+
+  console.log(
+    "BACKEND RESPONSE:",
+    result
+  );
+}
 
   return (
 
@@ -137,13 +169,29 @@ export default function PipelineFlow() {
         addNewNode={addNewNode}
       />
 
+      <button
+        onClick={testSerialization}
+      >
+        Test Serializer
+      </button>
+
+      <button
+  onClick={runPipeline}
+>
+  Run Pipeline
+</button>
+
       <ReactFlow
         nodes={nodes}
         edges={edges}
         nodeTypes={nodeTypes}
+
         onNodesChange={onNodesChange}
+
         onEdgesChange={onEdgesChange}
+
         onConnect={onConnect}
+
         deleteKeyCode={[
           "Backspace",
           "Delete",
@@ -152,36 +200,29 @@ export default function PipelineFlow() {
         onNodeDragStop={(
           _,
           node
-        ) => {
-
-          logEvent(
-            "PIPELINE_EVENT",
-            "NODE_DRAGGED",
-            {
-              nodeId: node.id,
-              finalPosition:
-                node.position,
-            }
-          );
-        }}
+        ) =>
+          handleNodeDragStop(node)
+        }
 
         onNodesDelete={(
           deletedNodes
-        ) => {
+        ) =>
+          handleNodesDelete(
+            deletedNodes,
+            nodes,
+            edges
+          )
+        }
 
-          deletedNodes.forEach(
-            (node) => {
-
-              logEvent(
-                "PIPELINE_EVENT",
-                "NODE_DELETED",
-                {
-                  nodeId: node.id,
-                }
-              );
-            }
-          );
-        }}
+        onEdgesDelete={(
+          deletedEdges
+        ) =>
+          handleEdgesDelete(
+            deletedEdges,
+            nodes,
+            edges
+          )
+        }
       >
 
         <MiniMap />

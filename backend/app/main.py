@@ -14,9 +14,13 @@ from app.models.event import Event
 
 from app.models.event_model import EventModel
 
+from app.routes.pipeline import router as pipeline_router
+
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
+
+app.include_router(pipeline_router)
 
 app.add_middleware(
     CORSMiddleware,

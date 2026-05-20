@@ -1,15 +1,11 @@
 import {
   ReactFlow,
-
   Background,
   Controls,
   MiniMap,
-
   useNodesState,
   useEdgesState,
-
   addEdge,
-
   type Connection,
 } from "reactflow";
 
@@ -34,6 +30,9 @@ from "../flow/nodeFactory";
 import NodeToolbar
 from "./NodeToolbar";
 
+import { nodeTypes }
+from "../nodes/nodeTypes";
+
 export default function PipelineFlow() {
 
   const [
@@ -57,28 +56,17 @@ export default function PipelineFlow() {
         edges.some(
           (edge) =>
             (
-              edge.source ===
-              params.source &&
-
-              edge.target ===
-              params.target
+              edge.source === params.source &&
+              edge.target === params.target
             ) ||
 
             (
-              edge.source ===
-              params.target &&
-
-              edge.target ===
-              params.source
+              edge.source === params.target &&
+              edge.target === params.source
             )
         );
 
       if (edgeExists) {
-
-        alert(
-          "These nodes are already connected."
-        );
-
         return;
       }
 
@@ -136,6 +124,7 @@ export default function PipelineFlow() {
   }
 
   return (
+
     <div
       style={{
         width: "100%",
@@ -150,10 +139,15 @@ export default function PipelineFlow() {
 
       <ReactFlow
         nodes={nodes}
-
         edges={edges}
-
+        nodeTypes={nodeTypes}
         onNodesChange={onNodesChange}
+        onEdgesChange={onEdgesChange}
+        onConnect={onConnect}
+        deleteKeyCode={[
+          "Backspace",
+          "Delete",
+        ]}
 
         onNodeDragStop={(
           _,
@@ -165,7 +159,6 @@ export default function PipelineFlow() {
             "NODE_DRAGGED",
             {
               nodeId: node.id,
-
               finalPosition:
                 node.position,
             }
@@ -183,24 +176,12 @@ export default function PipelineFlow() {
                 "PIPELINE_EVENT",
                 "NODE_DELETED",
                 {
-                  nodeId:
-                    node.id,
+                  nodeId: node.id,
                 }
               );
             }
           );
         }}
-
-        onEdgesChange={
-          onEdgesChange
-        }
-
-        onConnect={onConnect}
-
-        deleteKeyCode={[
-          "Backspace",
-          "Delete",
-        ]}
       >
 
         <MiniMap />

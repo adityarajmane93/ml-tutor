@@ -2,18 +2,22 @@ export const initialNodes = [
   {
     id: "1",
 
+    type: "datasetNode",
+
     position: {
       x: 100,
       y: 100,
     },
 
     data: {
-      label: "Dataset Loader",
+      label: "Dataset",
     },
   },
 
   {
     id: "2",
+
+    type: "modelNode",
 
     position: {
       x: 400,
@@ -21,7 +25,7 @@ export const initialNodes = [
     },
 
     data: {
-      label: "KNN Classifier",
+      label: "Model",
     },
   },
 ];

@@ -109,3 +109,13 @@ code {
   padding: 4px 8px;
   background: var(--code-bg);
 }
+
+.react-flow__node.selected {
+
+  outline: 3px solid #2563eb;
+
+  outline-offset: 2px;
+
+  box-shadow:
+    0 0 0 4px rgba(37, 99, 235, 0.2);
+}

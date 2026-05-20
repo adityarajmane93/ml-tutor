@@ -1,5 +1,3 @@
-import type { Node } from "reactflow";
-
 export function createNode(
   id: string,
   nodeType: string,
@@ -7,7 +5,7 @@ export function createNode(
     x: number;
     y: number;
   }
-): Node {
+) {
 
   const nodeConfig = {
 

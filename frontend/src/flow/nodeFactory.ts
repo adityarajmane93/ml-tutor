@@ -1,56 +1,63 @@
-import type { Node } from "reactflow";
+import type { Node }
+from "reactflow";
 
 export function createNode(
   id: string,
-  nodeType: string,
+  type: string,
   position: {
     x: number;
     y: number;
   }
 ): Node {
 
-  const nodeConfig = {
+  const labels: Record<
+    string,
+    string
+  > = {
 
-    Dataset: {
+    datasetNode: "Dataset",
+
+    preprocessingNode:
+      "Preprocessing",
+
+    modelNode: "Model",
+
+    evaluationNode:
+      "Evaluation",
+  };
+
+  const defaultData: Record<
+    string,
+    any
+  > = {
+
+    datasetNode: {
       label: "Dataset",
-      reactFlowType:
-        "datasetNode",
     },
 
-    Preprocessing: {
+    preprocessingNode: {
       label: "Preprocessing",
-      reactFlowType:
-        "preprocessingNode",
+      method:
+        "standardScaler",
     },
 
-    Model: {
+    modelNode: {
       label: "Model",
-      reactFlowType:
-        "modelNode",
+      algorithm: "knn",
+      k: 5,
     },
 
-    Evaluation: {
+    evaluationNode: {
       label: "Evaluation",
-      reactFlowType:
-        "evaluationNode",
     },
   };
 
-  const config =
-    nodeConfig[
-      nodeType as keyof typeof nodeConfig
-    ];
-
   return {
     id,
-
-    type:
-      config.reactFlowType,
-
+    type,
     position,
 
-    data: {
-      label: config.label,
-    },
+    data:
+      defaultData[type],
   };
 }

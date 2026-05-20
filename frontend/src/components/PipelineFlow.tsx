@@ -11,6 +11,7 @@ import {
 import {
   useCallback,
   useRef,
+  useMemo,
 } from "react";
 
 import "reactflow/dist/style.css";
@@ -36,8 +37,17 @@ from "../flow/pipelineSerializer";
 import NodeToolbar
 from "./NodeToolbar";
 
-import { nodeTypes }
-from "../nodes/nodeTypes";
+import DatasetNode
+from "../nodes/DatasetNode";
+
+import PreprocessingNode
+from "../nodes/PreprocessingNode";
+
+import ModelNode
+from "../nodes/ModelNode";
+
+import EvaluationNode
+from "../nodes/EvaluationNode";
 
 import { logEvent }
 from "../services/logger";
@@ -47,6 +57,9 @@ from "../services/pipelineSnapshot";
 
 import { executePipeline }
 from "../services/pipelineExecutor";
+
+import { createNodeTypes }
+from "../nodes/customNodeTypes";
 
 export default function PipelineFlow() {
 
@@ -131,29 +144,68 @@ export default function PipelineFlow() {
     );
   }
 
-  async function runPipeline() {
+  const updateNodeData =
+    useCallback((
+      nodeId: string,
+      newData: any
+    ) => {
 
-  const serialized =
-    serializePipeline(
-      nodes,
-      edges
-    );
+      setNodes((nds) =>
+        nds.map((node) => {
 
-  console.log(
-    "SERIALIZED:",
-    serialized
+          if (
+            node.id === nodeId
+          ) {
+
+            return {
+              ...node,
+
+              data: {
+                ...node.data,
+                ...newData,
+              },
+            };
+          }
+
+          return node;
+        })
+      );
+
+    }, [setNodes]);
+
+const customNodeTypes =
+  useMemo(
+    () =>
+      createNodeTypes(
+        updateNodeData
+      ),
+
+    [updateNodeData]
   );
 
-  const result =
-    await executePipeline(
+  async function runPipeline() {
+
+    const serialized =
+      serializePipeline(
+        nodes,
+        edges
+      );
+
+    console.log(
+      "SERIALIZED:",
       serialized
     );
 
-  console.log(
-    "BACKEND RESPONSE:",
-    result
-  );
-}
+    const result =
+      await executePipeline(
+        serialized
+      );
+
+    console.log(
+      "BACKEND RESPONSE:",
+      result
+    );
+  }
 
   return (
 
@@ -176,19 +228,27 @@ export default function PipelineFlow() {
       </button>
 
       <button
-  onClick={runPipeline}
->
-  Run Pipeline
-</button>
+        onClick={runPipeline}
+      >
+        Run Pipeline
+      </button>
 
       <ReactFlow
         nodes={nodes}
+
         edges={edges}
-        nodeTypes={nodeTypes}
 
-        onNodesChange={onNodesChange}
+        nodeTypes={
+          customNodeTypes
+        }
 
-        onEdgesChange={onEdgesChange}
+        onNodesChange={
+          onNodesChange
+        }
+
+        onEdgesChange={
+          onEdgesChange
+        }
 
         onConnect={onConnect}
 

@@ -1,16 +1,23 @@
 from fastapi import APIRouter
 
+from app.execution.executor import (
+    execute_pipeline
+)
+
 router = APIRouter()
 
+
 @router.post("/execute-pipeline")
-async def execute_pipeline(
+async def run_pipeline(
     payload: dict
 ):
 
-    print("\n=== PIPELINE RECEIVED ===")
-    print(payload)
+    ordered_pipeline = payload[
+        "orderedPipeline"
+    ]
 
-    return {
-        "status": "success",
-        "received": payload,
-    }
+    result = execute_pipeline(
+        ordered_pipeline
+    )
+
+    return result

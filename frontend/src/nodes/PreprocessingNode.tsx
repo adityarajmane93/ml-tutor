@@ -4,7 +4,8 @@ import {
 } from "reactflow";
 
 export default function PreprocessingNode({
-  data, selected,
+  data,
+  selected,
 }: any) {
 
   return (
@@ -23,26 +24,31 @@ export default function PreprocessingNode({
         textAlign: "center",
 
         fontWeight: 600,
-        border: selected ? "4px solid #fbff00" : "4px solid transparent",
+
+        border: selected
+          ? "4px solid #fbff00"
+          : "4px solid transparent",
 
         boxShadow:
           "0 2px 6px rgba(0,0,0,0.12)",
       }}
     >
 
-    
       {data.label}
 
-     
+     <p>
+  Method:
+  {data.method}
+</p>
       <Handle
-  type="target"
-  position={Position.Left}
-/>
+        type="target"
+        position={Position.Left}
+      />
 
-<Handle
-  type="source"
-  position={Position.Right}
-/>
+      <Handle
+        type="source"
+        position={Position.Right}
+      />
 
     </div>
   );

@@ -4,8 +4,10 @@ import {
 } from "reactflow";
 
 export default function ModelNode({
+  id,
   data,
   selected,
+  updateNodeData,
 }: any) {
 
   return (
@@ -30,11 +32,55 @@ export default function ModelNode({
 
               border: selected ? "4px solid #fbff00" : "4px solid transparent",
 
-            }}
+            }
+          
+          }
+
+          
           >
 
         {data.label}
+<p>
+  Algorithm:
+  {data.algorithm}
+</p>
 
+<div
+  style={{
+    marginTop: "8px",
+  }}
+>
+
+  <label>
+    K:
+  </label>
+
+  <input
+  className="nodrag"
+
+  type="number"
+
+  value={data.k ?? ""}
+
+  onChange={(e) => {
+
+    updateNodeData(
+      id,
+      {
+        k: Number(
+          e.target.value
+        ),
+      }
+    );
+  }}
+
+  style={{
+    width: "60px",
+    marginLeft: "8px",
+  }}
+/>
+
+</div>
      
       <Handle
   type="target"

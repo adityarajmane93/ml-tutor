@@ -17,41 +17,37 @@ export default function NodeToolbar({
       }}
     >
 
-      <button
-        onClick={() =>
-          addNewNode("Dataset")
-        }
-      >
-        + Dataset Node
-      </button>
+     <button
+  onClick={() =>
+    addNewNode("datasetNode")
+  }
+>
+  Dataset
+</button>
 
-      <button
-        onClick={() =>
-          addNewNode(
-            "Preprocessing"
-          )
-        }
-      >
-        + Preprocessing Node
-      </button>
+<button
+  onClick={() =>
+    addNewNode("preprocessingNode")
+  }
+>
+  Preprocessing
+</button>
 
-      <button
-        onClick={() =>
-          addNewNode("Model")
-        }
-      >
-        + Model Node
-      </button>
+<button
+  onClick={() =>
+    addNewNode("modelNode")
+  }
+>
+  Model
+</button>
 
-      <button
-        onClick={() =>
-          addNewNode(
-            "Evaluation"
-          )
-        }
-      >
-        + Evaluation Node
-      </button>
+<button
+  onClick={() =>
+    addNewNode("evaluationNode")
+  }
+>
+  Evaluation
+</button>
 
     </div>
   );

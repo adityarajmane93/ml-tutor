@@ -100,18 +100,34 @@ export default function PipelineFlow() {
 
     nodeId.current += 1;
 
-    const offset =
-      nodeId.current * 40;
+const lastNode =
+  nodes[
+    nodes.length - 1
+  ];
 
-    const newNode = createNode(
-      id,
-      nodeType,
-      {
-        x: 200 + offset,
-        y: 200 + offset,
+const newPosition =
+  lastNode
+    ? {
+        x:
+          lastNode.position.x
+          + 250,
+
+        y:
+          lastNode.position.y
+          + 50,
       }
-    );
 
+    : {
+        x: 200,
+        y: 200,
+      };
+
+const newNode =
+  createNode(
+    id,
+    nodeType,
+    newPosition
+  );
     const updatedNodes = [
       ...nodes,
       newNode,
@@ -144,13 +160,44 @@ export default function PipelineFlow() {
     );
   }
 
-  const updateNodeData =
-    useCallback((
-      nodeId: string,
-      newData: any
-    ) => {
+  // const updateNodeData =
+  //   useCallback((
+  //     nodeId: string,
+  //     newData: any
+  //   ) => {
 
-      setNodes((nds) =>
+  //     setNodes((nds) =>
+  //       nds.map((node) => {
+
+  //         if (
+  //           node.id === nodeId
+  //         ) {
+
+  //           return {
+  //             ...node,
+
+  //             data: {
+  //               ...node.data,
+  //               ...newData,
+  //             },
+  //           };
+  //         }
+
+  //         return node;
+  //       })
+  //     );
+
+  //   }, [setNodes]);
+
+const updateNodeData =
+  useCallback((
+    nodeId: string,
+    newData: any
+  ) => {
+
+    setNodes((nds) => {
+
+      const updatedNodes =
         nds.map((node) => {
 
           if (
@@ -168,10 +215,17 @@ export default function PipelineFlow() {
           }
 
           return node;
-        })
+        });
+
+      logPipelineSnapshot(
+        updatedNodes,
+        edges
       );
 
-    }, [setNodes]);
+      return updatedNodes;
+    });
+
+  }, [edges, setNodes]);
 
 const customNodeTypes =
   useMemo(
@@ -205,6 +259,32 @@ const customNodeTypes =
       "BACKEND RESPONSE:",
       result
     );
+
+    setNodes((nds) =>
+  nds.map((node) => {
+
+    if (
+      node.type ===
+      "evaluationNode"
+    ) {
+
+      return {
+        ...node,
+
+        data: {
+          ...node.data,
+
+          accuracy:
+            result.accuracy,
+        },
+      };
+    }
+
+    return node;
+  })
+);
+
+
   }
 
   return (

@@ -38,7 +38,15 @@ export default function EvaluationNode({
 
       {data.label}
 
+      <p>
+  Accuracy:
+  {
+    data?.accuracy
+      ?.toFixed(2)
+  }
+</p>
 
+ 
     </div>
   );
 }

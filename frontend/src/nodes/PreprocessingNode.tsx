@@ -4,11 +4,14 @@ import {
 } from "reactflow";
 
 export default function PreprocessingNode({
+  id,
   data,
   selected,
+  updateNodeData,
 }: any) {
 
   return (
+
     <div
       style={{
         background: "#d4a508",
@@ -19,7 +22,7 @@ export default function PreprocessingNode({
 
         borderRadius: "12px",
 
-        minWidth: "160px",
+        minWidth: "220px",
 
         textAlign: "center",
 
@@ -36,10 +39,63 @@ export default function PreprocessingNode({
 
       {data.label}
 
-     <p>
-  Method:
-  {data.method}
-</p>
+      <div
+        style={{
+          marginTop: "10px",
+        }}
+      >
+
+        <label>
+          Method:
+        </label>
+
+        <br />
+
+        <select
+          className="nodrag"
+
+          value={
+            data?.method
+            || "standardScaler"
+          }
+
+          onChange={(e) => {
+
+            updateNodeData(
+              id,
+              {
+                method:
+                  e.target.value,
+              }
+            );
+          }}
+
+          style={{
+            marginTop: "6px",
+            width: "170px",
+          }}
+        >
+
+          <option
+            value="standardScaler"
+          >
+            Standard Scaler
+          </option>
+
+          <option
+            value="minMaxScaler"
+          >
+            MinMax Scaler
+          </option>
+
+          <option value="none">
+            None
+          </option>
+
+        </select>
+
+      </div>
+
       <Handle
         type="target"
         position={Position.Left}

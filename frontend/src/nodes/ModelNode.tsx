@@ -11,88 +11,221 @@ export default function ModelNode({
 }: any) {
 
   return (
-          <div
-            style={{
-              background: "#c5290d",
 
-              color: "white",
+    <div
+      style={{
+        background: "#c5290d",
 
-              padding: "12px",
+        color: "white",
 
-              borderRadius: "12px",
+        padding: "12px",
 
-              minWidth: "160px",
+        borderRadius: "12px",
 
-              textAlign: "center",
+        minWidth: "220px",
 
-              fontWeight: 600,
+        textAlign: "center",
 
-              boxShadow:
-                "0 2px 6px rgba(0,0,0,0.12)",
+        fontWeight: 600,
 
-              border: selected ? "4px solid #fbff00" : "4px solid transparent",
+        boxShadow:
+          "0 2px 6px rgba(0,0,0,0.12)",
 
-            }
-          
+        border: selected
+          ? "4px solid #fbff00"
+          : "4px solid transparent",
+      }}
+    >
+
+      {data.label}
+
+      <div
+        style={{
+          marginTop: "10px",
+        }}
+      >
+
+        <label>
+          Algorithm:
+        </label>
+
+        <br />
+
+        <select
+          className="nodrag"
+
+          value={
+            data.algorithm
           }
 
-          
+          onChange={(e) => {
+
+            const algorithm =
+              e.target.value;
+
+            if (
+              algorithm === "knn"
+            ) {
+
+              updateNodeData(
+                id,
+                {
+                  algorithm,
+                  k: 5,
+                }
+              );
+            }
+
+            else if (
+              algorithm ===
+              "decisionTree"
+            ) {
+
+              updateNodeData(
+                id,
+                {
+                  algorithm,
+                  maxDepth: 3,
+                }
+              );
+            }
+
+            else {
+
+              updateNodeData(
+                id,
+                {
+                  algorithm,
+                }
+              );
+            }
+          }}
+
+          style={{
+            marginTop: "6px",
+            width: "160px",
+          }}
+        >
+
+          <option value="knn">
+            KNN
+          </option>
+
+          <option
+            value="logisticRegression"
+          >
+            Logistic Regression
+          </option>
+
+          <option
+            value="decisionTree"
+          >
+            Decision Tree
+          </option>
+
+        </select>
+      </div>
+
+      {
+        data.algorithm === "knn" && (
+
+          <div
+            style={{
+              marginTop: "10px",
+            }}
           >
 
-        {data.label}
-<p>
-  Algorithm:
-  {data.algorithm}
-</p>
+            <label>
+              K:
+            </label>
 
-<div
-  style={{
-    marginTop: "8px",
-  }}
->
+            <input
+              className="nodrag"
 
-  <label>
-    K:
-  </label>
+              type="number"
 
-  <input
-  className="nodrag"
+              value={
+                data.k ?? ""
+              }
 
-  type="number"
+              onChange={(e) => {
 
-  value={data.k ?? ""}
+                updateNodeData(
+                  id,
+                  {
+                    k: Number(
+                      e.target.value
+                    ),
+                  }
+                );
+              }}
 
-  onChange={(e) => {
+              style={{
+                width: "60px",
+                marginLeft: "8px",
+              }}
+            />
 
-    updateNodeData(
-      id,
-      {
-        k: Number(
-          e.target.value
-        ),
+          </div>
+        )
       }
-    );
-  }}
 
-  style={{
-    width: "60px",
-    marginLeft: "8px",
-  }}
-/>
+      {
+        data.algorithm ===
+        "decisionTree" && (
 
-</div>
-     
+          <div
+            style={{
+              marginTop: "10px",
+            }}
+          >
+
+            <label>
+              Max Depth:
+            </label>
+
+            <input
+              className="nodrag"
+
+              type="number"
+
+              value={
+                data.maxDepth ?? ""
+              }
+
+              onChange={(e) => {
+
+                updateNodeData(
+                  id,
+                  {
+                    maxDepth:
+                      Number(
+                        e.target.value
+                      ),
+                  }
+                );
+              }}
+
+              style={{
+                width: "60px",
+                marginLeft: "8px",
+              }}
+            />
+
+          </div>
+        )
+      }
+
       <Handle
-  type="target"
-  position={Position.Left}
-/>
+        type="target"
+        position={Position.Left}
+      />
 
-<Handle
-  type="source"
-  position={Position.Right}
-/>
+      <Handle
+        type="source"
+        position={Position.Right}
+      />
 
     </div>
   );
 }
-

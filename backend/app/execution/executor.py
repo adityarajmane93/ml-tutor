@@ -16,6 +16,19 @@ from sklearn.metrics import (
     accuracy_score
 )
 
+from sklearn.tree import (
+    DecisionTreeClassifier
+)
+
+from sklearn.linear_model import (
+    LogisticRegression
+)
+
+from sklearn.preprocessing import (
+    MinMaxScaler
+)
+
+
 
 def execute_pipeline(
     ordered_pipeline
@@ -55,7 +68,7 @@ def execute_pipeline(
             ) = train_test_split(
                 X,
                 y,
-                test_size=0.2,
+                test_size=0.5,
                 random_state=42
             )
 
@@ -65,34 +78,131 @@ def execute_pipeline(
 
         elif node_type == "preprocessingNode":
 
-            scaler = StandardScaler()
-
-            X_train = scaler.fit_transform(
-                X_train
+            method = node[
+                "data"
+            ].get(
+                "method",
+                "standardScaler"
             )
 
-            X_test = scaler.transform(
-                X_test
-            )
+            # -------------------
+            # STANDARD SCALER
+            # -------------------
+
+            if (
+                method ==
+                "standardScaler"
+            ):
+
+                scaler = StandardScaler()
+
+            # -------------------
+            # MINMAX SCALER
+            # -------------------
+
+            elif (
+                method ==
+                "minMaxScaler"
+            ):
+
+                scaler = MinMaxScaler()
+
+            # -------------------
+            # NO PREPROCESSING
+            # -------------------
+
+            elif (
+                method == "none"
+            ):
+
+                scaler = None
+
+            # -------------------
+            # APPLY SCALER
+            # -------------------
+
+            if scaler is not None:
+
+                X_train = scaler.fit_transform(
+                        X_train
+                    )
+
+                X_test = scaler.transform(
+                        X_test
+                    )
 
         # -------------------
         # MODEL NODE
         # -------------------
-
+        
         elif node_type == "modelNode":
-            k = node["data"].get(
-                "k",
-                5
+
+            algorithm = node[
+                "data"
+            ].get(
+                "algorithm",
+                "knn"
             )
 
-            model = KNeighborsClassifier(
-                n_neighbors=k
-            )
+            # -------------------
+            # KNN
+            # -------------------
+
+            if algorithm == "knn":
+
+                k = node["data"].get(
+                    "k",
+                    5
+                )
+
+                model = (
+                    KNeighborsClassifier(
+                        n_neighbors=k
+                    )
+                )
+
+            # -------------------
+            # DECISION TREE
+            # -------------------
+
+            elif (
+                algorithm ==
+                "decisionTree"
+            ):
+
+                max_depth = (
+                    node["data"].get(
+                        "maxDepth",
+                        3
+                    )
+                )
+
+                model = (
+                    DecisionTreeClassifier(
+                        max_depth=max_depth
+                    )
+                )
+
+            # -------------------
+            # LOGISTIC REGRESSION
+            # -------------------
+
+            elif (
+                algorithm ==
+                "logisticRegression"
+            ):
+
+                model = (
+                    LogisticRegression(
+                        max_iter=1000
+                    )
+                )
 
             model.fit(
                 X_train,
                 y_train
             )
+
 
         # -------------------
         # EVALUATION NODE

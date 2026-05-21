@@ -1,230 +1,104 @@
-from sklearn.datasets import load_iris
-
-from sklearn.model_selection import (
-    train_test_split
+from app.execution.state import (
+    create_execution_state
 )
 
-from sklearn.preprocessing import (
-    StandardScaler
+from app.execution.dataset.dataset_handler import (
+    handle_dataset_node
 )
 
-from sklearn.neighbors import (
-    KNeighborsClassifier
+from app.execution.preprocessing.preprocessing_handler import (
+    handle_preprocessing_node
 )
 
-from sklearn.metrics import (
-    accuracy_score
+from app.execution.models.model_handler import (
+    handle_model_node
 )
 
-from sklearn.tree import (
-    DecisionTreeClassifier
+from app.execution.evaluation.evaluation_handler import (
+    handle_evaluation_node
 )
-
-from sklearn.linear_model import (
-    LogisticRegression
-)
-
-from sklearn.preprocessing import (
-    MinMaxScaler
-)
-
 
 
 def execute_pipeline(
     ordered_pipeline
 ):
 
-    X = None
-    y = None
-
-    X_train = None
-    X_test = None
-
-    y_train = None
-    y_test = None
-
-    model = None
+    state = (
+        create_execution_state()
+    )
 
     for node in ordered_pipeline:
 
         node_type = node["type"]
 
+        print(
+            f"\n=== EXECUTING {node_type} ==="
+        )
+
         # -------------------
-        # DATASET NODE
+        # DATASET
         # -------------------
 
-        if node_type == "datasetNode":
+        if (
+            node_type ==
+            "datasetNode"
+        ):
 
-            iris = load_iris()
+            result = (
+                handle_dataset_node(
+                    node,
+                    state
+                )
+            )
 
-            X = iris.data
-            y = iris.target
+            if result:
+                return result
 
-            (
-                X_train,
-                X_test,
-                y_train,
-                y_test
-            ) = train_test_split(
-                X,
-                y,
-                test_size=0.5,
-                random_state=42
+        # -------------------
+        # PREPROCESSING
+        # -------------------
+
+        elif (
+            node_type ==
+            "preprocessingNode"
+        ):
+
+            handle_preprocessing_node(
+                node,
+                state
             )
 
         # -------------------
-        # PREPROCESSING NODE
+        # MODEL
         # -------------------
 
-        elif node_type == "preprocessingNode":
+        elif (
+            node_type ==
+            "modelNode"
+        ):
 
-            method = node[
-                "data"
-            ].get(
-                "method",
-                "standardScaler"
+            handle_model_node(
+                node,
+                state
             )
-
-            # -------------------
-            # STANDARD SCALER
-            # -------------------
-
-            if (
-                method ==
-                "standardScaler"
-            ):
-
-                scaler = StandardScaler()
-
-            # -------------------
-            # MINMAX SCALER
-            # -------------------
-
-            elif (
-                method ==
-                "minMaxScaler"
-            ):
-
-                scaler = MinMaxScaler()
-
-            # -------------------
-            # NO PREPROCESSING
-            # -------------------
-
-            elif (
-                method == "none"
-            ):
-
-                scaler = None
-
-            # -------------------
-            # APPLY SCALER
-            # -------------------
-
-            if scaler is not None:
-
-                X_train = scaler.fit_transform(
-                        X_train
-                    )
-
-                X_test = scaler.transform(
-                        X_test
-                    )
 
         # -------------------
-        # MODEL NODE
-        # -------------------
-        
-        elif node_type == "modelNode":
-
-            algorithm = node[
-                "data"
-            ].get(
-                "algorithm",
-                "knn"
-            )
-
-            # -------------------
-            # KNN
-            # -------------------
-
-            if algorithm == "knn":
-
-                k = node["data"].get(
-                    "k",
-                    5
-                )
-
-                model = (
-                    KNeighborsClassifier(
-                        n_neighbors=k
-                    )
-                )
-
-            # -------------------
-            # DECISION TREE
-            # -------------------
-
-            elif (
-                algorithm ==
-                "decisionTree"
-            ):
-
-                max_depth = (
-                    node["data"].get(
-                        "maxDepth",
-                        3
-                    )
-                )
-
-                model = (
-                    DecisionTreeClassifier(
-                        max_depth=max_depth
-                    )
-                )
-
-            # -------------------
-            # LOGISTIC REGRESSION
-            # -------------------
-
-            elif (
-                algorithm ==
-                "logisticRegression"
-            ):
-
-                model = (
-                    LogisticRegression(
-                        max_iter=1000
-                    )
-                )
-
-            model.fit(
-                X_train,
-                y_train
-            )
-
-
-        # -------------------
-        # EVALUATION NODE
+        # EVALUATION
         # -------------------
 
-        elif node_type == "evaluationNode":
+        elif (
+            node_type ==
+            "evaluationNode"
+        ):
 
-            predictions = model.predict(
-                X_test
-            )
-
-            accuracy = accuracy_score(
-                y_test,
-                predictions
-            )
-
-            return {
-                "accuracy": float(
-                    accuracy
+            return (
+                handle_evaluation_node(
+                    node,
+                    state
                 )
-            }
+            )
 
     return {
-        "status": "pipeline incomplete"
+        "status":
+        "pipeline incomplete"
     }

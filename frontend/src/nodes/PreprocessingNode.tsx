@@ -22,7 +22,7 @@ export default function PreprocessingNode({
 
         borderRadius: "12px",
 
-        minWidth: "220px",
+        minWidth: "240px",
 
         textAlign: "center",
 
@@ -37,7 +37,13 @@ export default function PreprocessingNode({
       }}
     >
 
-      {data.label}
+      <div>
+        {data.label}
+      </div>
+
+      {/* ---------------- */}
+      {/* METHOD */}
+      {/* ---------------- */}
 
       <div
         style={{
@@ -56,7 +62,6 @@ export default function PreprocessingNode({
 
           value={
             data?.method
-            || "standardScaler"
           }
 
           onChange={(e) => {
@@ -72,29 +77,87 @@ export default function PreprocessingNode({
 
           style={{
             marginTop: "6px",
-            width: "170px",
+            width: "180px",
           }}
         >
 
           <option
-            value="standardScaler"
+            value="fillMissingValues"
           >
-            Standard Scaler
+            Fill Missing Values
           </option>
 
           <option
-            value="minMaxScaler"
+            value="removeDuplicateRows"
           >
-            MinMax Scaler
-          </option>
-
-          <option value="none">
-            None
+            Remove Duplicate Rows
           </option>
 
         </select>
 
       </div>
+
+      {/* ---------------- */}
+      {/* STRATEGY */}
+      {/* ---------------- */}
+
+      {
+        data?.method ===
+        "fillMissingValues" && (
+
+          <div
+            style={{
+              marginTop: "12px",
+            }}
+          >
+
+            <label>
+              Strategy:
+            </label>
+
+            <br />
+
+            <select
+              className="nodrag"
+
+              value={
+                data?.strategy
+              }
+
+              onChange={(e) => {
+
+                updateNodeData(
+                  id,
+                  {
+                    strategy:
+                      e.target.value,
+                  }
+                );
+              }}
+
+              style={{
+                marginTop: "6px",
+                width: "180px",
+              }}
+            >
+
+              <option
+                value="average"
+              >
+                Use Average
+              </option>
+
+              <option
+                value="removeRows"
+              >
+                Remove Rows
+              </option>
+
+            </select>
+
+          </div>
+        )
+      }
 
       <Handle
         type="target"

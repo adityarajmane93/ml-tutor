@@ -12,6 +12,7 @@ import {
   useCallback,
   useRef,
   useMemo,
+  useState,
 } from "react";
 
 import "reactflow/dist/style.css";
@@ -37,17 +38,17 @@ from "../flow/pipelineSerializer";
 import NodeToolbar
 from "./NodeToolbar";
 
-import DatasetNode
-from "../nodes/DatasetNode";
+// import DatasetNode
+// from "../nodes/DatasetNode";
 
-import PreprocessingNode
-from "../nodes/PreprocessingNode";
+// import PreprocessingNode
+// from "../nodes/PreprocessingNode";
 
-import ModelNode
-from "../nodes/ModelNode";
+// import ModelNode
+// from "../nodes/ModelNode";
 
-import EvaluationNode
-from "../nodes/EvaluationNode";
+// import EvaluationNode
+// from "../nodes/EvaluationNode";
 
 import { logEvent }
 from "../services/logger";
@@ -74,6 +75,12 @@ export default function PipelineFlow() {
     setEdges,
     onEdgesChange,
   ] = useEdgesState(initialEdges);
+
+
+  const [
+  reflectionMessage,
+  setReflectionMessage,
+] = useState("");
 
   const nodeId = useRef(3);
 
@@ -260,6 +267,31 @@ const customNodeTypes =
       result
     );
 
+    if (
+  result.accuracy >= 0.9
+) {
+
+  setReflectionMessage(
+    "The model performed very well."
+  );
+}
+
+else if (
+  result.accuracy >= 0.7
+) {
+
+  setReflectionMessage(
+    "The model performed moderately well."
+  );
+}
+
+else {
+
+  setReflectionMessage(
+    "The model struggled to learn patterns."
+  );
+}
+
     setNodes((nds) =>
   nds.map((node) => {
 
@@ -372,6 +404,31 @@ const customNodeTypes =
         <Background />
 
       </ReactFlow>
+
+      <div
+  style={{
+    borderTop:
+      "1px solid #ccc",
+
+    padding: "12px",
+
+    background: "#f8f8f8",
+
+    minHeight: "80px",
+  }}
+>
+
+  <strong>
+    Reflection
+  </strong>
+
+  <p>
+    {
+      reflectionMessage
+    }
+  </p>
+
+</div>
 
     </div>
   );

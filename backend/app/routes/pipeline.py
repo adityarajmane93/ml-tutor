@@ -11,7 +11,7 @@ router = APIRouter()
 async def run_pipeline(
     payload: dict
 ):
-
+    #print(payload)
     ordered_pipeline = payload[
         "orderedPipeline"
     ]

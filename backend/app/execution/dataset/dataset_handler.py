@@ -1,4 +1,5 @@
 import pandas as pd
+from fastapi import HTTPException
 
 from sklearn.model_selection import (
     train_test_split
@@ -16,10 +17,11 @@ def handle_dataset_node(
 
     if dataset is None:
 
-        return {
-            "status":
-            "No dataset uploaded."
-        }
+        raise HTTPException(
+            status_code=400, 
+            detail="No dataset uploaded. Please connect a valid dataset block first."
+        )
+
 
     # -------------------
     # DATAFRAME

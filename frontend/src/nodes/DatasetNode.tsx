@@ -105,10 +105,16 @@ export default function DatasetNode({
       </p>
 
       <Handle
-        type="source"
+        type="target"
         position={Position.Right}
+        id="right-target"
       />
 
+      <Handle
+        type="source"
+        position={Position.Right}
+        id="right-source"
+      />
     </div>
   );
 }

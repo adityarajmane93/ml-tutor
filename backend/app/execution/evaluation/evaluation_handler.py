@@ -26,10 +26,11 @@ def handle_evaluation_node(
 
     if model is None:
 
-        return {
-            "status":
-            "No trained model found."
-        }
+        raise HTTPException(
+            status_code=400, 
+            detail="No trained model found."
+        )
+        
 
     predictions = (
         model.predict(

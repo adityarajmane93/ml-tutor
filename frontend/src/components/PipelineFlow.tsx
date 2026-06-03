@@ -23,7 +23,7 @@ import {
 } from "../flow/initialElements";
 
 import { createNode }
-from "../flow/nodeFactory";
+  from "../flow/nodeFactory";
 
 import {
   handleConnect,
@@ -33,10 +33,10 @@ import {
 } from "../flow/flowHandlers";
 
 import { serializePipeline }
-from "../flow/pipelineSerializer";
+  from "../flow/pipelineSerializer";
 
 import NodeToolbar
-from "./NodeToolbar";
+  from "./NodeToolbar";
 
 // import DatasetNode
 // from "../nodes/DatasetNode";
@@ -51,16 +51,16 @@ from "./NodeToolbar";
 // from "../nodes/EvaluationNode";
 
 import { logEvent }
-from "../services/logger";
+  from "../services/logger";
 
 import { logPipelineSnapshot }
-from "../services/pipelineSnapshot";
+  from "../services/pipelineSnapshot";
 
 import { executePipeline }
-from "../services/pipelineExecutor";
+  from "../services/pipelineExecutor";
 
 import { createNodeTypes }
-from "../nodes/customNodeTypes";
+  from "../nodes/customNodeTypes";
 
 export default function PipelineFlow() {
 
@@ -76,11 +76,41 @@ export default function PipelineFlow() {
     onEdgesChange,
   ] = useEdgesState(initialEdges);
 
+  const [reflection, setReflection] = useState("Move blocks to begin analysis.");
+
+  const runMLPipeline = async () => {
+    try {
+      // 1. Serialize layout (instantly throws an error if there are loops or floating blocks)
+      const layout = serializePipeline(nodes, edges);
+
+      // 2. Call your backend pipeline endpoint
+      const response = await fetch("http://127.0.0.1:8000/pipeline/run", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(layout),
+      });
+
+      // 3. If backend triggers your global exception handler, response.ok becomes false
+      if (!response.ok) {
+        throw new Error("Backend pipeline error");
+      }
+
+      const data = await response.json();
+      setReflection(data.reflection); // Success path: updates with actual string message
+
+    } catch (error) {
+      // Catch-all: turning the feedback bar text to exactly "Error"
+      console.error("Pipeline run caught error:", error);
+      setReflection("Error");
+    }
+  };
 
   const [
-  reflectionMessage,
-  setReflectionMessage,
-] = useState("");
+    reflectionMessage,
+    setReflectionMessage,
+  ] = useState("");
 
   const nodeId = useRef(3);
 
@@ -107,34 +137,34 @@ export default function PipelineFlow() {
 
     nodeId.current += 1;
 
-const lastNode =
-  nodes[
-    nodes.length - 1
-  ];
+    const lastNode =
+      nodes[
+      nodes.length - 1
+      ];
 
-const newPosition =
-  lastNode
-    ? {
-        x:
-          lastNode.position.x
-          + 250,
+    const newPosition =
+      lastNode
+        ? {
+          x:
+            lastNode.position.x
+            + 250,
 
-        y:
-          lastNode.position.y
-          + 50,
-      }
+          y:
+            lastNode.position.y
+            + 50,
+        }
 
-    : {
-        x: 200,
-        y: 200,
-      };
+        : {
+          x: 200,
+          y: 200,
+        };
 
-const newNode =
-  createNode(
-    id,
-    nodeType,
-    newPosition
-  );
+    const newNode =
+      createNode(
+        id,
+        nodeType,
+        newPosition
+      );
     const updatedNodes = [
       ...nodes,
       newNode,
@@ -196,127 +226,94 @@ const newNode =
 
   //   }, [setNodes]);
 
-const updateNodeData =
-  useCallback((
-    nodeId: string,
-    newData: any
-  ) => {
+  const updateNodeData =
+    useCallback((
+      nodeId: string,
+      newData: any
+    ) => {
 
-    setNodes((nds) => {
+      setNodes((nds) => {
 
-      const updatedNodes =
+        const updatedNodes =
+          nds.map((node) => {
+
+            if (
+              node.id === nodeId
+            ) {
+
+              return {
+                ...node,
+
+                data: {
+                  ...node.data,
+                  ...newData,
+                },
+              };
+            }
+
+            return node;
+          });
+
+        logPipelineSnapshot(
+          updatedNodes,
+          edges
+        );
+
+        return updatedNodes;
+      });
+
+    }, [edges, setNodes]);
+
+  const customNodeTypes =
+    useMemo(
+      () =>
+        createNodeTypes(
+          updateNodeData
+        ),
+
+      [updateNodeData]
+    );
+
+  async function runPipeline() {
+    try {
+      // 1. Serialize layout (Will throw error if floating blocks or loops exist)
+      const serialized = serializePipeline(nodes, edges);
+      console.log("SERIALIZED:", serialized);
+
+      // 2. Call your existing execution service
+      // Ensure executePipeline in pipelineExecutor.ts throws an error if response.ok is false
+      const result = await executePipeline(serialized);
+      console.log("BACKEND RESPONSE:", result);
+
+      // 3. Update the reflection message based on accuracy
+      if (result.accuracy >= 0.9) {
+        setReflectionMessage("The model performed very well.");
+      } else if (result.accuracy >= 0.7) {
+        setReflectionMessage("The model performed moderately well.");
+      } else {
+        setReflectionMessage("The model struggled to learn patterns.");
+      }
+
+      // 4. Update the Evaluation Node
+      setNodes((nds) =>
         nds.map((node) => {
-
-          if (
-            node.id === nodeId
-          ) {
-
+          if (node.type === "evaluationNode") {
             return {
               ...node,
-
               data: {
                 ...node.data,
-                ...newData,
+                accuracy: result.accuracy,
               },
             };
           }
-
           return node;
-        });
-
-      logPipelineSnapshot(
-        updatedNodes,
-        edges
+        })
       );
-
-      return updatedNodes;
-    });
-
-  }, [edges, setNodes]);
-
-const customNodeTypes =
-  useMemo(
-    () =>
-      createNodeTypes(
-        updateNodeData
-      ),
-
-    [updateNodeData]
-  );
-
-  async function runPipeline() {
-
-    const serialized =
-      serializePipeline(
-        nodes,
-        edges
-      );
-
-    console.log(
-      "SERIALIZED:",
-      serialized
-    );
-
-    const result =
-      await executePipeline(
-        serialized
-      );
-
-    console.log(
-      "BACKEND RESPONSE:",
-      result
-    );
-
-    if (
-  result.accuracy >= 0.9
-) {
-
-  setReflectionMessage(
-    "The model performed very well."
-  );
-}
-
-else if (
-  result.accuracy >= 0.7
-) {
-
-  setReflectionMessage(
-    "The model performed moderately well."
-  );
-}
-
-else {
-
-  setReflectionMessage(
-    "The model struggled to learn patterns."
-  );
-}
-
-    setNodes((nds) =>
-  nds.map((node) => {
-
-    if (
-      node.type ===
-      "evaluationNode"
-    ) {
-
-      return {
-        ...node,
-
-        data: {
-          ...node.data,
-
-          accuracy:
-            result.accuracy,
-        },
-      };
+    } catch (error) {
+      // Catch-all: turning the feedback bar text to exactly "Error"
+      console.error("Pipeline run caught error:", error);
+      setReflectionMessage("Error");
     }
-
-    return node;
-  })
-);
-
-
   }
 
   return (
@@ -406,29 +403,30 @@ else {
       </ReactFlow>
 
       <div
-  style={{
-    borderTop:
-      "1px solid #ccc",
+        style={{
+          borderTop:
+            "1px solid #ccc",
 
-    padding: "12px",
+          padding: "12px",
 
-    background: "#f8f8f8",
+          background: "#f8f8f8",
 
-    minHeight: "80px",
-  }}
->
+          minHeight: "80px",
+        }}
+      >
 
-  <strong>
-    Reflection
-  </strong>
+        <strong>
+          Reflection
+        </strong>
 
-  <p>
-    {
-      reflectionMessage
-    }
-  </p>
+        <p style={{
+          color: reflectionMessage === "Error" ? "red" : "black",
+          fontWeight: reflectionMessage === "Error" ? "bold" : "normal"
+        }}>
+          {reflectionMessage}
+        </p>
 
-</div>
+      </div>
 
     </div>
   );

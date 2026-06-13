@@ -31,16 +31,16 @@ export function createUpdatedEdges(
   return addEdge(
     {
       ...params,
+      className: 'custom-edge', // class name we can target in CSS
       style: {
-        strokeWidth: 2,   
-        stroke: '#080808',   
+        strokeWidth: 3,   
+        stroke: '#080808', // Force the base line to be black
       },
-      // 2. Style the Arrowhead
       markerEnd: {
         type: MarkerType.ArrowClosed,
-        width: 15,        // Makes the arrow head wider
-        height: 15,       // Makes the arrow head taller
-        color: '#080808',    
+        width: 15,        
+        height: 15,       
+        color: '#080808',
       },
     },
     edges

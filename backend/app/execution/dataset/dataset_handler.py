@@ -86,6 +86,12 @@ def handle_dataset_node(
     # TRAIN TEST SPLIT
     # -------------------
 
+    testSize = node[
+        "data"
+    ].get("testSize")
+
+    if testSize is None:
+        testSize=30
     (
         X_train,
         X_test,
@@ -94,7 +100,7 @@ def handle_dataset_node(
     ) = train_test_split(
         X,
         y,
-        test_size=0.3,
+        test_size=int(testSize)/100,
         random_state=42
     )
 

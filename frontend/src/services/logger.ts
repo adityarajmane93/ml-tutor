@@ -1,48 +1,39 @@
 import axios from "axios";
-
-import { useSessionStore }
-from "../store/sessionStore.ts";
+import { useSessionStore } from "../store/sessionStore.ts";
 
 export async function logEvent(
   eventType: string,
   action: string,
   metadata: Record<string, any> = {}
 ) {
-  const sessionId =
-    useSessionStore.getState().sessionId;
-
+  const store = useSessionStore.getState();
+  
   const event = {
     event_id: crypto.randomUUID(),
-
-    session_id: sessionId,
-
-    timestamp: new Date().toISOString(),
-
+    session_id: store.sessionId,
+    timestamp: Math.floor(Date.now() / 1000).toString(),
     event_type: eventType,
-
     action,
-
     source: "frontend",
-
     schema_version: "1.0",
-
     metadata,
   };
 
   try {
-    const response = await axios.post(
-      "http://127.0.0.1:8000/log-event",
-      event
-    );
+    // 1. Database Persistence
+    // We ALWAYS use Axios to hit the FastAPI route that contains your SQLAlchemy db.commit() logic
+    const response = await axios.post("http://localhost:8000/log-event", event);
+    console.log(` [DB SAVED] ${action}`, response.data);
 
-    console.log(
-      "Event logged successfully:",
-      response.data
-    );
+    // 2. elemetry Broadcast
+    // If the database write was successful, and the socket is open, beam it to the analytics page
+    if (store.telemetrySocket && store.telemetrySocket.readyState === WebSocket.OPEN) {
+      store.telemetrySocket.send(JSON.stringify(event));
+      console.log(` [LIVE STREAMED] ${action}`);
+    }
+
   } catch (error) {
-    console.error(
-      "Error logging event:",
-      error
-    );
+    // Log failure to console for debugging.
+    console.error(` [LOGGING FAILED] Could not save ${action}:`, error);
   }
 }

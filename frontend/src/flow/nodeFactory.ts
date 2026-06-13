@@ -13,16 +13,17 @@ export function createNode(
   const defaultData: Record<string, any> = {
     datasetNode: {
       label: "Dataset",
+      testSize: "30",
     },
     preprocessingNode: {
       label: "Preprocessing",
       method: "fillMissingValues", // Matches the first visible option in your HTML <select>
-      strategy: "average",         // FIXED: Added this so the strategy dropdown renders immediately
+      strategy: "average",         // The "strategy" dropdown renders immediately
     },
     modelNode: {
       label: "Model",
       algorithm: "knn",
-      k: 3,                        // You can adjust default hyperparameters here
+      k: 3,                      
     },
     evaluationNode: {
       label: "Evaluation",

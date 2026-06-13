@@ -1,7 +1,4 @@
-import {
-  Handle,
-  Position,
-} from "reactflow";
+import { Handle, Position } from "reactflow";
 
 export default function PreprocessingNode({
   id,
@@ -10,178 +7,71 @@ export default function PreprocessingNode({
   updateNodeData,
 }: any) {
 
-  return (
+  const selectStyle = {
+    border: "2px solid var(--text)",
+    borderRadius: "0",
+    background: "var(--surface)",
+    color: "var(--text)",
+    fontWeight: 600,
+    padding: "2px 4px", // Slimmer padding
+    boxShadow: "2px 2px 0px 0px var(--text)",
+    width: "160px",     // Slimmer width
+    cursor: "pointer",
+    marginTop: "4px",
+    fontSize: "0.85rem" // Smaller text
+  };
 
+  return (
     <div
       style={{
-        background: "#d4a508",
-
-        color: "white",
-
-        padding: "12px",
-
-        borderRadius: "12px",
-
-        minWidth: "240px",
-
+        background: "var(--warning)",
+        color: "var(--surface)",
+        padding: "10px 12px", // Slimmer padding
+        minWidth: "190px",    // Slimmer width
         textAlign: "center",
-
-        fontWeight: 600,
-
-        border: selected
-          ? "4px solid #fbff00"
-          : "4px solid transparent",
-
-        boxShadow:
-          "0 2px 6px rgba(0,0,0,0.12)",
+        fontWeight: 800,
+        borderRadius: "0",
+        border: selected ? "1px solid var(--primary)" : "1px solid var(--text)",
       }}
     >
-
-      <div>
+      <div style={{ fontSize: "0.95rem", textTransform: "uppercase" }}>
         {data.label}
       </div>
 
-      {/* ---------------- */}
-      {/* METHOD */}
-      {/* ---------------- */}
-
-      <div
-        style={{
-          marginTop: "10px",
-        }}
-      >
-
-        <label>
-          Method:
-        </label>
-
+      <div style={{ marginTop: "10px", fontSize: "0.85rem" }}>
+        <label>Method:</label>
         <br />
-
         <select
           className="nodrag"
-
-          value={
-            data?.method
-          }
-
-          onChange={(e) => {
-
-            updateNodeData(
-              id,
-              {
-                method:
-                  e.target.value,
-              }
-            );
-          }}
-
-          style={{
-            marginTop: "6px",
-            width: "180px",
-          }}
+          value={data?.method}
+          onChange={(e) => updateNodeData(id, { method: e.target.value })}
+          style={selectStyle}
         >
-
-          <option
-            value="fillMissingValues"
-          >
-            Fill Missing Values
-          </option>
-
-          <option
-            value="removeDuplicateRows"
-          >
-            Remove Duplicate Rows
-          </option>
-
+          <option value="fillMissingValues">Fill Missing Values</option>
+          <option value="removeDuplicateRows">Remove Duplicate Rows</option>
         </select>
-
       </div>
 
-      {/* ---------------- */}
-      {/* STRATEGY */}
-      {/* ---------------- */}
-
-      {
-        data?.method ===
-        "fillMissingValues" && (
-
-          <div
-            style={{
-              marginTop: "12px",
-            }}
+      {data?.method === "fillMissingValues" && (
+        <div style={{ marginTop: "10px", fontSize: "0.85rem" }}>
+          <label>Strategy:</label>
+          <br />
+          <select
+            className="nodrag"
+            value={data?.strategy}
+            onChange={(e) => updateNodeData(id, { strategy: e.target.value })}
+            style={selectStyle}
           >
+            <option value="average">Use Average</option>
+            <option value="removeRows">Remove Rows</option>
+          </select>
+        </div>
+      )}
 
-            <label>
-              Strategy:
-            </label>
-
-            <br />
-
-            <select
-              className="nodrag"
-
-              value={
-                data?.strategy
-              }
-
-              onChange={(e) => {
-
-                updateNodeData(
-                  id,
-                  {
-                    strategy:
-                      e.target.value,
-                  }
-                );
-              }}
-
-              style={{
-                marginTop: "6px",
-                width: "180px",
-              }}
-            >
-
-              <option
-                value="average"
-              >
-                Use Average
-              </option>
-
-              <option
-                value="removeRows"
-              >
-                Remove Rows
-              </option>
-
-            </select>
-
-          </div>
-        )
-      }
-
-      <Handle
-        type="target"
-        position={Position.Left}
-        id="left-target"
-      />
-      <Handle
-        type="target"
-        position={Position.Right}
-        id="right-target"
-      />
-
-      <Handle
-        type="source"
-        position={Position.Left}
-        id="left-source"
-      />
-      <Handle
-        type="source"
-        position={Position.Right}
-        id="right-source"
-      />
-
-      
+      <Handle type="target" position={Position.Left} id="left-target" />
+      <Handle type="target" position={Position.Right} id="right-target" />
+      <Handle type="source" position={Position.Left} id="left-source" />
+      <Handle type="source" position={Position.Right} id="right-source" />
     </div>
   );
 }

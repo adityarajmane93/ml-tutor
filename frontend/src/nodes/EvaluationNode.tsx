@@ -34,8 +34,15 @@ export default function EvaluationNode({
       <Handle
         type="target"
         position={Position.Left}
+        id="left-target"
       />
 
+      <Handle
+        type="source"
+        position={Position.Left}
+        id="left-source"
+      />
+     
       {data.label}
 
       <p>

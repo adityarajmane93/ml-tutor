@@ -75,6 +75,16 @@ def handle_preprocessing_node(
                 )
             )
 
+            if y_train.dtype.kind in 'biufc':
+                target_fill = y_train.mean()
+            else:
+                # If it's categorical/strings, use the Mode (most frequent)
+                target_fill = y_train.mode()[0] if not y_train.mode().empty else None
+
+            if target_fill is not None:
+                y_train = y_train.fillna(target_fill)
+                state["y_test"] = state["y_test"].fillna(target_fill)
+            
             print(
                 "Missing values filled using averages."
             )

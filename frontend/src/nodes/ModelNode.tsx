@@ -216,14 +216,26 @@ export default function ModelNode({
         )
       }
 
-      <Handle
+       <Handle
         type="target"
         position={Position.Left}
+        id="left-target"
+      />
+      <Handle
+        type="target"
+        position={Position.Right}
+        id="right-target"
       />
 
       <Handle
         type="source"
+        position={Position.Left}
+        id="left-source"
+      />
+      <Handle
+        type="source"
         position={Position.Right}
+        id="right-source"
       />
 
     </div>

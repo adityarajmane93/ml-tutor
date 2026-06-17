@@ -1,3 +1,4 @@
+import traceback
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -19,6 +20,19 @@ from app.routes.pipeline import router as pipeline_router
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
+
+@app.exception_handler(Exception)
+async def validation_exception_handler(request: Request, exc: Exception):
+    # 1. Keeps the full error traceback in your terminal so you can still debug
+    print("\n=== !!! BACKEND ERROR !!! ===")
+    traceback.print_exc()
+    print("=======================================\n")
+    
+    # 2. Sends a clean 400 Bad Request status code back to your React app
+    return JSONResponse(
+        status_code=400,
+        content={"status": "error", "message": "Pipeline processing failed"}
+    )
 
 app.include_router(pipeline_router)
 

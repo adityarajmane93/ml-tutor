@@ -46,6 +46,7 @@ export async function handleConnect(
     {
       source: params.source,
       target: params.target,
+      direction: `${params.source} → ${params.target}`,
     }
   );
 

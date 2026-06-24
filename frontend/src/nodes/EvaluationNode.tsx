@@ -1,8 +1,16 @@
 import { Handle, Position } from "reactflow";
+import { useReactFlow } from 'reactflow';
 
 export default function EvaluationNode({
-  data, selected,
+  id, data, selected,
 }: any) {
+
+  const { deleteElements } = useReactFlow();
+  
+    const handleDelete = (e: React.MouseEvent) => {
+      e.stopPropagation(); // Prevents the click from accidentally dragging/selecting the node
+      deleteElements({ nodes: [{ id }] }); // Triggers your existing deletion logic!
+    };
 
   return (
     <div
@@ -17,6 +25,9 @@ export default function EvaluationNode({
         border: selected ? "1px solid var(--primary)" : "1px solid var(--text)",
       }}
     >
+      <button className="neo-delete-btn" style={{background: "var(--success)"}} onClick={handleDelete} title="Delete Node">
+        X
+      </button>
       <Handle type="target" position={Position.Left} id="left-target" />
       <Handle type="source" position={Position.Left} id="left-source" />
      
@@ -34,8 +45,9 @@ export default function EvaluationNode({
       }}>
         Accuracy: <br/>
         <span style={{ fontSize: "1rem", fontWeight: 900 }}>
-          {data?.accuracy ? data.accuracy.toFixed(2) : "--"}
+          {data?.accuracy ? (data.accuracy.toFixed(2))*100 : "--"}
         </span>
+        <span style={{ fontWeight: 'bold', fontSize: '0.95rem' }}> {data?.accuracy ? "%" : ""}</span> {/* add the % Symbol */}
       </div>
     </div>
   );

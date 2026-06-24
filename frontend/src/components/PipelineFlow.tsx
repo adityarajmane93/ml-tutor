@@ -32,6 +32,12 @@ import { createNode }
 import { devLog }
   from "../flow/logger"
 
+import { AllNotesButton } 
+  from "./LearnTab";
+
+import SessionTimer 
+  from "./SessionTimer";
+
 import {
   handleConnect,
   handleNodeDragStop,
@@ -68,7 +74,7 @@ export default function PipelineFlow() {
     nodes,
     setNodes,
     onNodesChange,
-  ] = useNodesState<any>(initialNodes);
+  ] = useNodesState<Node>(initialNodes);
 
   const [
     edges,
@@ -193,21 +199,21 @@ export default function PipelineFlow() {
 
   async function Learn() { 
     const currentTime = Date.now(); 
-    let typeToView = "runPipeline"; // Default fallback
+    let typeToView = "notesInfo"; // Default fallback
 
-    // 1. Determine what is selected
+    // Determine what is selected
     if (selectedNodes.length > 0 && selectedNodes[0].type) {
       typeToView = selectedNodes[0].type;
     } else if (selectedEdges.length > 0) {
       typeToView = "edge";
     }
 
-    // 2. Set the UI states to open the modal
+    // Set the UI states to open the modal
     setLearnModalType(typeToView);
     setLearnModalOpenTime(currentTime); 
     setShowLearnModal(true);
 
-    // 3. Log the "OPEN" event!
+    // Log the "OPEN" event!
     await logEvent("CLICK_EVENT", "LEARN_MODAL_OPENED", {
       type_viewed: typeToView
     });
@@ -228,7 +234,7 @@ export default function PipelineFlow() {
   const updateNodeData =
     useCallback((
       nodeId: string,
-      newData: any
+      newData: Record<string, unknown>
     ) => {
 
       setNodes((nds) => {
@@ -273,31 +279,30 @@ export default function PipelineFlow() {
       [updateNodeData]
     );
 
-
   async function runPipeline() {
     try {
-      // 1. Serialize layout
+      // Serialize layout
       const serialized = serializePipeline(nodes, edges);
       devLog("SERIALIZED:", serialized);
 
-      // 2. Open the WebSocket connection
+      // Open the WebSocket connection
       const ws = new WebSocket(`${import.meta.env.VITE_WS_URL}/ws/run`);
       devLog("Web Socket Opened");
       
-      // 3. Send the data when the socket opens
+      // Send the data when the socket opens
       ws.onopen = () => {
         const payload = typeof serialized === "string" ? serialized : JSON.stringify(serialized);
         ws.send(payload);
         setReflectionMessage("Executing pipeline...");
       };
 
-      // 4. Catch network-level socket errors (e.g., server offline)
+      // Catch network-level socket errors (e.g., server offline)
       ws.onerror = (error) => {
           console.error("WebSocket Error:", error);
           setReflectionMessage("Error: Cannot connect to backend.");
       };
 
-      // 5. Handle connection closures
+      // Handle connection closures
       ws.onclose = (event) => {
         if (!event.wasClean) {
           console.warn("WebSocket disconnected unexpectedly.");
@@ -305,7 +310,7 @@ export default function PipelineFlow() {
         }
       };
 
-      // 6. When the backend replies
+      // When the backend replies
       ws.onmessage = (event) => {
         const result = JSON.parse(event.data);
         devLog("BACKEND WS RESPONSE:", result);
@@ -342,31 +347,30 @@ export default function PipelineFlow() {
 
     } catch (error) {
       console.error("Pipeline run caught error:", error);
-      setReflectionMessage("Error preparing pipeline.");
+      setReflectionMessage("Error");
     }
   }
 
   const handleCloseLearnModal = async () => {
-    // 1. Calculate duration
+    // Calculate duration
     let durationSeconds = 0;
     if (learnModalOpenTime) {
        // (Current Time - Start Time) / 1000 gives us seconds
        durationSeconds = (Date.now() - learnModalOpenTime) / 1000;
     }
 
-    // 2. Log the event to your backend
+    // Log the event to your backend
     await logEvent("CLICK_EVENT", "LEARN_MODAL_CLOSED", {
       type_viewed: learnModalType,
       time_open_seconds: durationSeconds // Store the duration in metadata!
     });
     
-    // 3. Reset the UI state
+    // Reset the UI state
     setShowLearnModal(false);
     setLearnModalOpenTime(null);
   };
 
   const hasSelection = (selectedNodes.length > 0 && !!selectedNodes[0].type) || selectedEdges.length > 0;
-  
   
   let activeSelectionColor = undefined;
   if (selectedNodes.length > 0 && selectedNodes[0].type) {
@@ -380,43 +384,7 @@ export default function PipelineFlow() {
   }
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "24px", paddingBottom: "40px" }}>
-
-      <div style={{ 
-        border: "4px solid var(--text)", 
-        borderRadius: "0", 
-        overflow: "hidden",
-        boxShadow: "var(--hard-shadow)",
-        backgroundColor: "rgb(255 255 255 / 50%)",
-      }}>
-        <SAMMbar />
-      </div>
-      
-      <div style={{ position: "fixed", top: "20px", right: "20px", zIndex: 999 }}>
-        <button
-          onClick={openAllNotes}
-          style={{
-            padding: "3px 10px", // Slightly tighter padding for the sidebar
-            backgroundColor: "#ffffff",
-            color: "#ffffff",
-            border: "3px solid #000000",
-            borderRadius: "8px",
-            boxShadow: "4px 4px 0px #000000", // Hard neo-brutalist shadow
-            fontWeight: "900",
-            fontSize: "1rem", // Scaled down slightly to fit the corner beautifully
-            cursor: "pointer",
-            transition: "transform 0.1s ease",
-            textTransform: "uppercase"
-          }}
-          onMouseDown={(e) => e.currentTarget.style.transform = "translate(4px, 4px)"}
-          onMouseUp={(e) => e.currentTarget.style.transform = "none"}
-          onMouseLeave={(e) => e.currentTarget.style.transform = "none"}
-        >
-           <span style={{ fontSize: '1.5rem' }} role="img">
-          📒
-          </span>
-        </button>
-      </div>
+    <div style={{ display: "flex", flexDirection: "row", gap: "24px", paddingBottom: "40px", height: "70vh", minHeight: "600px",minWidth: "1300px"  }}>
 
       <VideoStream />
       
@@ -427,63 +395,121 @@ export default function PipelineFlow() {
         />
       )}
 
+      {/* ========================================= */}
+      {/* LEFT COLUMN: CANVAS & TOOLBAR             */}
+      {/* ========================================= */}
+      <div style={{ 
+        flex: 1, // Ensures the whole canvas area stretches to fill the screen
+        display: "flex", 
+        justifyContent: "flex-end",
+        flexDirection: "row", 
+        minWidth: '900px',
+        gap: "16px", 
+        position: "relative" 
+      }}>
+
+        <div
+          style={{
+            flex: 1, 
+            border: "4px solid var(--text)",
+            boxShadow: "var(--hard-shadow)",
+            display: "flex",
+            flexDirection: "column",
+            boxSizing: "border-box",
+            background: "var(--surface)",
+            position: "relative" 
+          }}
+        >
+          <NodeToolbar
+            addNewNode={addNewNode}
+            Learn={Learn}
+            hasSelection={hasSelection}
+            runPipeline={runPipeline}
+            activeColor={activeSelectionColor}
+          />
+
+          {/* ReactFlow must be wrapped in a flex: 1 div to expand correctly */}
+          <div style={{ flex: 1, position: "relative" }}>
+            <ReactFlow
+              nodes={nodes}
+              edges={edges}
+              nodeTypes={customNodeTypes}
+              onNodesChange={onNodesChange}
+              onEdgesChange={onEdgesChange}
+              onConnect={onConnect}
+              deleteKeyCode={["Backspace", "Delete"]}
+              onNodeDragStop={(_, node) => handleNodeDragStop(node)}
+              onNodesDelete={(deletedNodes) => handleNodesDelete(deletedNodes, nodes, edges)}
+              onEdgesDelete={(deletedEdges) => handleEdgesDelete(deletedEdges, nodes, edges)}
+            >
+              <MiniMap style={{ border: "2px solid var(--text)", borderRadius: "0" }} />
+              <Controls style={{ border: "2px solid var(--text)", borderRadius: "0", overflow: "hidden" }} />
+              <Background color="var(--text)" gap={20} />
+            </ReactFlow>
+          </div>
+        </div>
+      </div>
+      
+      {/* ========================================= */}
+      {/* RIGHT COLUMN: SAMM & REFLECTION           */}
+      {/* ========================================= */}
       <div
         style={{
-          width: "100%",
-          height: "650px",
-          border: "4px solid var(--text)",
-          boxShadow: "var(--hard-shadow)",
+          width: "350px",
+          flexShrink: 0,
           display: "flex",
           flexDirection: "column",
-          boxSizing: "border-box",
-          background: "var(--surface)"
+          gap: "16px",
+          minWidth: "400px" 
         }}
       >
-
-        <NodeToolbar
-          addNewNode={addNewNode}
-          Learn={Learn}
-          hasSelection={hasSelection}
-          runPipeline={runPipeline}
-          activeColor={activeSelectionColor}
-        />
-
-        <div
-          style={{
-            padding: "0 16px 12px 16px",
+        {/* --- TOP ROW: SAMM Tracker + Buttons Stack --- */}
+        
+          {/* Timer & Notes sitting right on top of SAMM --- */}
+          <div style={{ 
+            display: "flex", 
+            justifyContent: "flex-end", // Pushes them nicely to the right corner
+            gap: "12px", 
+            zIndex: 100,
+            marginTop: "-65px"
+          }}>
+            <SessionTimer />
+            <AllNotesButton onClick={openAllNotes} />
+          </div>
+          {/* LEFT: SAMM Tracker */}
+          <div style={{ 
+            flex: 1, // Takes up the remaining space
+            border: "4px solid var(--text)", 
+            borderRadius: "0", 
+            overflow: "hidden",
+            boxShadow: "var(--hard-shadow)",
+            backgroundColor: "#ffffff",
+            padding: "5px",
+            minWidth: '400px',
             display: "flex",
-            gap: "10px",
-            alignItems: "center",
-          }}
-        >
-        </div>
+            flexDirection: "column",
+            justifyContent: "center",
+            alignItems: 'center'
+          }}>
+            <SAMMbar direction="column"/>
+          </div>
 
-        <ReactFlow
-          nodes={nodes}
-          edges={edges}
-          nodeTypes={customNodeTypes}
-          onNodesChange={onNodesChange}
-          onEdgesChange={onEdgesChange}
-          onConnect={onConnect}
-          deleteKeyCode={["Backspace", "Delete"]}
-          onNodeDragStop={(_, node) => handleNodeDragStop(node)}
-          onNodesDelete={(deletedNodes) => handleNodesDelete(deletedNodes, nodes, edges)}
-          onEdgesDelete={(deletedEdges) => handleEdgesDelete(deletedEdges, nodes, edges)}
-        >
-          <MiniMap style={{ border: "2px solid var(--text)", borderRadius: "0" }} />
-          <Controls style={{ border: "2px solid var(--text)", borderRadius: "0", overflow: "hidden" }} />
-          <Background color="var(--text)" gap={20} />
-        </ReactFlow>
-
+        {/* BOTTOM BOX: Reflection Panel */}
         <div
           style={{
-            borderTop: "4px solid var(--text)",
-            padding: "16px",
-            background: "var(--primary)", /* Yellow background for high contrast footer */
-            minHeight: "70px",
+            border: "4px solid var(--text)",
+            boxShadow: "var(--hard-shadow)",
+            padding: "24px",
+            background: "var(--primary)", 
+            flex: 1, // Fills the remaining vertical space
+            display: "flex",
+            flexDirection: "column",
+            justifyContent: "center",
+            alignItems: "center",
+            minWidth: '360px',
             color: "var(--text)"
           }}
-        >
+        > 
           <strong style={{ fontSize: "1.2rem", textTransform: "uppercase" }}>
             Reflection
           </strong>
@@ -491,15 +517,17 @@ export default function PipelineFlow() {
           <p style={{
             color: reflectionMessage === "Error" ? "var(--danger)" : "var(--text)",
             fontWeight: 800,
-            marginTop: "8px",
+            marginTop: "12px",
             fontFamily: "var(--mono)",
-            fontSize: "1.1rem"
+            fontSize: "1.1rem",
+            textAlign: "center"
           }}>
             {reflectionMessage ? `> ${reflectionMessage}` : "> Awaiting execution..."}
           </p>
-
         </div>
+
       </div>
+      
     </div>
   );
 }

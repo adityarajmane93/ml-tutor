@@ -1,4 +1,5 @@
 import { Handle, Position } from "reactflow";
+import { useReactFlow } from 'reactflow';
 import Papa from "papaparse";
 
 export default function DatasetNode({
@@ -7,6 +8,13 @@ export default function DatasetNode({
   selected,
   updateNodeData,
 }: any) {
+
+  const { deleteElements } = useReactFlow();
+
+  const handleDelete = (e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevents the click from accidentally dragging/selecting the node
+    deleteElements({ nodes: [{ id }] }); // Triggers your existing deletion logic!
+  };
 
   function handleFileUpload(event: any) {
     const file = event.target.files[0];
@@ -47,7 +55,11 @@ export default function DatasetNode({
         borderRadius: "0",
         border: selected ? "1px solid var(--primary)" : "1px solid var(--text)", // Slightly thinner borders
       }}
-    >
+    > 
+      <button className="neo-delete-btn" style={{background: "var(--secondary)"}} onClick={handleDelete} title="Delete Node">
+        X
+      </button>
+      
       <div style={{ fontSize: "0.95rem", marginBottom: "8px", textTransform: "uppercase" }}>
         Dataset
       </div>

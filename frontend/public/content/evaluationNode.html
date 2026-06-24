@@ -1,0 +1,35 @@
+<h2>Evaluation Node</h2>
+<p>Hurray!!! you've reached the final stage of your machine learning pipeline!</p>
+
+<p>Remember: If you ever feel stuck, use the "How are you feeling?" tracker at the top of your screen to log your emotions.</p>
+
+<h3>1. Intuision: </h3>
+    <p>Just because a student reads a textbook does not mean they actually learned the material. To find out if they are smart, we have to give them a final exam. The Evaluation node is the final exam for our Machine Learning model.</p>
+    <p>To test the model fairly, we cannot ask it questions it has already seen. If we do that, the model might just memorize (by heart) the answers instead of actually understanding the patterns. This is called 𝗢𝘃𝗲𝗿𝗳𝗶𝘁𝘁𝗶𝗻𝗴, and it is a massive problem in data science.</p>
+    <img src="/src/images/Overfitting_Underfitting.png" alt="Overfitting Graph" style="display: flex; justify-content: center; width: 45%; border-radius: 8px; margin: 20px auto;" />
+    <p>Do you remember setting the "Test Size: %" back in the Dataset node? Here is where that hidden data comes into play!</p>
+
+<h3>2. Context of ML-Tutor</h3>
+
+    <p> Model Accuracy: The percentage of total correct predictions. (This is the main score you will see on your ML-Tutor node!)</p>
+    <p>Look at the green Evaluation block in your workspace.</p>
+    <ul>
+        <li>𝗧𝗵𝗲 𝗜𝗻𝗽𝘂𝘁 𝗪𝗶𝗿𝗲: Ensure the wire coming into the left side of this node connects directly from the 𝗠𝗼𝗱𝗲𝗹 𝗻𝗼𝗱𝗲.</li>
+        <li>𝗥𝘂𝗻𝗻𝗶𝗻𝗴 𝘁𝗵𝗲 𝗣𝗶𝗽𝗲𝗹𝗶𝗻𝗲: Once connected, press the yellow-colored "𝗥𝘂𝗻 𝗣𝗶𝗽𝗲𝗹𝗶𝗻𝗲" button at the top right of your screen. This will Train your model on the Training Dataset</li>
+        <li>𝗧𝗵𝗲 𝗔𝗰𝗰𝘂𝗿𝗮𝗰𝘆 𝗦𝗰𝗼𝗿𝗲: The green node will calculate and display your model's 𝗔𝗰𝗰𝘂𝗿𝗮𝗰𝘆.</li>
+        <ul>
+            <li>An Accuracy of 100% means all your model's predictions were correct, on the Test Data.</li>
+            <li>An accuracy score of 100% is generally considered Not good. Since, in many cases this indicates Overfitting.</li>
+            <li>Accuracy Score >85% is considered good.</li>
+        </ul>
+        <li>𝗧𝗵𝗲 𝗥𝗲𝗳𝗹𝗲𝗰𝘁𝗶𝗼𝗻 𝗕𝗮𝗿: Look at the yellow bar at the bottom of your screen. After you run your pipeline, the app will give you written feedback based on your score, such as "> 𝘛𝘩𝘦 𝘮𝘰𝘥𝘦𝘭 𝘱𝘦𝘳𝘧𝘰𝘳𝘮𝘦𝘥 𝘷𝘦𝘳𝘺 𝘸𝘦𝘭𝘭" or "> 𝘛𝘩𝘦 𝘮𝘰𝘥𝘦𝘭 𝘱𝘦𝘳𝘧𝘰𝘳𝘮𝘦𝘥 𝘮𝘰𝘥𝘦𝘳𝘢𝘵𝘦𝘭𝘺 𝘸𝘦𝘭𝘭".</li>
+    </ul>
+
+<h3>📝 Summary Checklist Before You Finish:</h3>
+    <ol>
+        <li>Is the green Evaluation node connected to the output of your red Model node?</li>
+        <li>Did you click "Run Pipeline" to train the model?</li>
+        <li>What was your Accuracy score? If it is very low, you might need to go back and try a different Preprocessing strategy or a different Algorithm!</li>
+        <li>Did you read the Reflection at the bottom of the screen to understand your model's performance?</li>
+    </ol>    
+    <p>Congratulations! You have successfully built, cleaned, trained, and evaluated a complete Artificial Intelligence pipeline!</p>

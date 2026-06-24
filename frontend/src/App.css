@@ -4,7 +4,9 @@
   font-weight: 800;
   padding: 8px 16px;
   color: var(--text);
-  background: var(--primary);
+  /* width: 120px; */
+  text-align: center;
+  /* background: var(--primary); */
   border: var(--border-width) solid var(--text);
   box-shadow: var(--hard-shadow);
   cursor: pointer;

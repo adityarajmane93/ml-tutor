@@ -1,4 +1,5 @@
 import { Handle, Position } from "reactflow";
+import { useReactFlow } from 'reactflow';
 
 export default function PreprocessingNode({
   id,
@@ -6,6 +7,12 @@ export default function PreprocessingNode({
   selected,
   updateNodeData,
 }: any) {
+  const { deleteElements } = useReactFlow();
+
+  const handleDelete = (e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevents the click from accidentally dragging/selecting the node
+    deleteElements({ nodes: [{ id }] }); // Triggers your existing deletion logic!
+  };
 
   const selectStyle = {
     border: "2px solid var(--text)",
@@ -34,6 +41,10 @@ export default function PreprocessingNode({
         border: selected ? "1px solid var(--primary)" : "1px solid var(--text)",
       }}
     >
+      <button className="neo-delete-btn" style={{background: "var(--warning)"}} onClick={handleDelete} title="Delete Node">
+        X
+      </button>
+
       <div style={{ fontSize: "0.95rem", textTransform: "uppercase" }}>
         {data.label}
       </div>

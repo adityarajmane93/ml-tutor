@@ -4,10 +4,10 @@ import { useSessionStore } from '../store/sessionStore';
 import { devLog }
   from "../flow/logger"
 
-// ─── IMPORT YOUR IMAGES ───
-import h1 from '../SAMM_doodles/1.png';
-import e1 from '../SAMM_doodles/2.png';
-import c1 from '../SAMM_doodles/3.png';
+// ─── IMPORT SAMM IMAGES ───
+import h1 from '../images/1.png';
+import e1 from '../images/2.png';
+import c1 from '../images/3.png';
 
 type SammBarProps = {
   leftLabel: string;
@@ -36,10 +36,10 @@ const SammBar = ({ leftLabel, rightLabel, bgImage, selectedValue, onSelect, bord
     const rect = e.currentTarget.getBoundingClientRect();
     const x = e.clientX - rect.left;
     
-    // 1. Calculate the raw -1 to 1 value
+    // Calculate the raw -1 to 1 value
     const rawValue = ((x / rect.width) * 2) - 1;
     
-    // 2. Clamp it between -1 and 1 and round to the nearest 0.1 step
+    // Clamp it between -1 and 1 and round to the nearest 0.1 step
     const steppedValue = Math.round(Math.max(-1, Math.min(1, rawValue)) * 10) / 10;
     
     // Allow 0 as a valid selection.
@@ -62,28 +62,20 @@ const SammBar = ({ leftLabel, rightLabel, bgImage, selectedValue, onSelect, bord
         <span style={{ fontWeight: 'bold', width: '60px', textAlign: 'right', fontSize: '0.85rem' }}>{leftLabel}</span>
         
         <div 
+          className="neo-slider-track"
           style={{ 
             display: 'flex', flex: 1, 
-            border: `4px solid ${borderColor}`,
-            transition: borderTransition,
-            borderRadius: '6px', 
-            cursor: 'pointer',
-            
-            // ─── SINGLE BACKGROUND IMAGE LOGIC ───
-            backgroundImage: `url(${bgImage})`,
-            backgroundSize: '100% 100%',    // Ensures the whole image fits
-            backgroundPosition: 'center', // Centers the image
-            backgroundRepeat: 'no-repeat',
-            
-            // Layout to center the slider perfectly over the image
+            minWidth: '200px',
             height: '50px',
             alignItems: 'center', 
-            padding: '0 15px', 
-            
-            // Light blue tint when hovered or selected
-            backgroundColor: isHovered || isAnswered ? '#2196f31a' : 'transparent',
+            padding: '1 5px', 
             position: 'relative', 
-            overflow: 'hidden'
+            
+            // ─── DYNAMIC STYLES STAY INLINE ───
+            border: `4px solid ${borderColor}`,
+            transition: borderTransition,
+            backgroundImage: `url(${bgImage})`,
+            backgroundColor: isHovered || isAnswered ? 'rgba(241, 207, 83,0.1)' : 'transparent', 
           }}
           onMouseMove={(e) => { setIsHovered(true); handleMouse(e, false); }}
           onClick={(e) => handleMouse(e, true)}
@@ -91,16 +83,11 @@ const SammBar = ({ leftLabel, rightLabel, bgImage, selectedValue, onSelect, bord
         >
         
         <div 
+          className="neo-slider-fill" 
           style={{
-            position: 'absolute',
-            left: 0,
-            top: 0,
-            height: '100%',
             // Scales -1 (0%) to 1 (100%)
             width: `${((currentFill + 1) / 2) * 100}%`, 
-            backgroundColor: '#2196f366', 
             transition: hoverValue !== null ? 'none' : 'width 0.3s ease', 
-            pointerEvents: 'none' 
           }} 
         />
         </div>
@@ -111,10 +98,10 @@ const SammBar = ({ leftLabel, rightLabel, bgImage, selectedValue, onSelect, bord
   );
 };
 
-export default function SAMMTracker() {
+export default function SAMMTracker({ direction = 'row' }: { direction?: 'row' | 'column' } = {}) {
   const sessionId = useSessionStore((state) => state.sessionId);
   const [timePassed, setTimePassed] = useState(0);
-  const [isFlashBlue, setIsFlashBlue] = useState(true);
+  const [isFlashYellow, setIsFlashYellow] = useState(true);
   
   // Responses start as null. The backend will now receive an integer from 0 to 100.
   const [responses, setResponses] = useState<ResponsesState>({
@@ -123,7 +110,7 @@ export default function SAMMTracker() {
     dominance: null
   });
 
-  // 1. Timer Logic
+  // Timer Logic
   useEffect(() => {
     const timer = setInterval(() => {
       setTimePassed(prev => {
@@ -134,16 +121,16 @@ export default function SAMMTracker() {
     return () => clearInterval(timer);
   }, []);
 
-  // 2. Flashing Logic
+  // Flashing Logic
   useEffect(() => {
     let flashTimer: ReturnType<typeof setInterval> | undefined;;
     if (timePassed >= 90) {
-      flashTimer = setInterval(() => setIsFlashBlue(prev => !prev), 500);
+      flashTimer = setInterval(() => setIsFlashYellow(prev => !prev), 500);
     }
     return () => clearInterval(flashTimer);
   }, [timePassed]);
 
-  // 3. Submission Logic (Triggers automatically when all 3 sliders have been moved)
+  // Submission Logic (Triggers automatically when all 3 sliders have been moved)
   useEffect(() => {
     if (responses.valence !== null && responses.arousal !== null && responses.dominance !== null) {
       submitFeedback();
@@ -174,17 +161,17 @@ export default function SAMMTracker() {
     setTimePassed(0);
   };
 
-  // 4. Border Color Logic (Unchanged)
+  // Border Color Logic 
   const getDynamicBorderColor = () => {
     if (timePassed >= 90) {
-      return isFlashBlue ? '#2196f366' : '#f0f8f7';
+      return isFlashYellow ? 'var(--primary)' : '#b7bdbc';
     } else if (timePassed >= 70) {
-      return '#2196f366';
+      return 'var(--primary)';
     } else {
       const progress = timePassed / 70;
-      const r = Math.round(204 - (171 * progress)); // 204 drops to 33
-      const g = Math.round(204 - (54 * progress));  // 204 drops to 150
-      const b = Math.round(204 + (39 * progress));
+      const r = Math.round(255 - (14 * progress));  // 255 drops to 241
+      const g = Math.round(255 - (48 * progress));  // 255 drops to 207
+      const b = Math.round(255 - (172 * progress)); // 255 drops to 83
       return `rgb(${r}, ${g}, ${b})`;
     }
   };
@@ -196,11 +183,16 @@ export default function SAMMTracker() {
     <div style={{ padding: '12px 20px', borderRadius: '12px' }}>
       <div style={{ maxWidth: '100%', margin: '0 auto', width: '100%' }}>
         
-        <h2 style={{ textAlign: 'center', margin: '0 0 10px 0', fontSize: '1.2rem', whiteSpace: 'nowrap', width: '100%' }}>
+        <h2 style={{ textAlign: 'center', margin: '0 0 5px 0', fontSize: '1.2rem', whiteSpace: 'nowrap', width: '100%' }}>
           How are you feeling?
         </h2>
         
-        <div style={{ display: 'flex', flexDirection: 'row', gap: '15px', justifyContent: 'center' }}>
+        <div style={{ 
+          display: 'flex', 
+          flexDirection: direction, // <-- Now it listens to the prop!
+          gap: direction === 'column' ? '5px' : '15px', // Adjusts gap automatically
+          justifyContent: 'center' 
+        }}>
           
           <SammBar 
             leftLabel="Unhappy" 

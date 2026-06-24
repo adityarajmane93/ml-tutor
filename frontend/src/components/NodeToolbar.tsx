@@ -18,8 +18,9 @@ export default function NodeToolbar({
       style={{
         padding: "16px",
         display: "flex",
-        gap: "16px",
-        flexWrap: "wrap",
+        justifyContent: "space-between",
+        alignItems: "center",
+        gap: "8px",
         borderBottom: "4px solid var(--text)",
         background: "var(--surface)",
       }}
@@ -60,7 +61,7 @@ export default function NodeToolbar({
       <button
         className="counter"
         style={{
-          // 3. Dynamically apply the violet color if something is selected!
+          //  Dynamically apply the violet color if something is selected!
           background: hasSelection ? (`color-mix(in srgb, ${activeColor} 85%, transparent)` || '#111827') : "var(--surface)",
           color: hasSelection ? "#ffffff" : "var(--text)",
           margin: 0,

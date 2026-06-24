@@ -1,0 +1,57 @@
+<h2>Model Node</h2>
+<p>If you ever feel stuck, use the "How are you feeling?" tracker at the top of your screen to log your emotions.</p>
+
+<h3>1. Intuision: </h3>
+    <p>This block is the actual 'Brain' of the pipeline. This actually learns patterns from the Data. Use it to select which ML model/algorithm (like KNN, Decision Trees, Logistic Regression) you want to use.</p>
+
+    <h4>How Do Computers Actually Make Decisions?</h4>
+    <p>There are two main ways to get a computer to make a decision:</p>
+    <ul>
+        <li>𝗔𝗽𝗽𝗿𝗼𝗮𝗰𝗵 𝗔: 𝗥𝘂𝗹𝗲-𝗕𝗮𝘀𝗲𝗱 𝗔𝗜 (𝗧𝗵𝗲 𝗦𝘁𝗿𝗶𝗰𝘁 𝗣𝗮𝗿𝗲𝗻𝘁): In a rule-based approach, the human programmer writes exactly what the computer should do. 𝘌𝘹𝘢𝘮𝘱𝘭𝘦: "𝘐𝘧 𝘵𝘩𝘦 𝘵𝘦𝘮𝘱𝘦𝘳𝘢𝘵𝘶𝘳𝘦 𝘪𝘴 𝘰𝘷𝘦𝘳 30 𝘥𝘦𝘨𝘳𝘦𝘦𝘴, 𝘵𝘶𝘳𝘯 𝘰𝘯 𝘵𝘩𝘦 𝘧𝘢𝘯." The computer doesn't learn anything; it just follows your strict rules.
+        </li>
+
+        <li>𝗔𝗽𝗽𝗿𝗼𝗮𝗰𝗵 𝗕: 𝗟𝗲𝗮𝗿𝗻𝗶𝗻𝗴-𝗕𝗮𝘀𝗲𝗱 𝗔𝗜 (𝗠𝗮𝗰𝗵𝗶𝗻𝗲 𝗟𝗲𝗮𝗿𝗻𝗶𝗻𝗴): Instead of giving the machine the rules, you give the machine the 𝗱𝗮𝘁𝗮 and the 𝗮𝗻𝘀𝘄𝗲𝗿𝘀, and it calculates the rules on its own! This is what your ML-Tutor app is doing.
+        </li>
+    </ul>
+
+    <h4>How Does the Machine Learn?</h4>
+    <p>When using Machine Learning, algorithms generally learn in a few different ways:</p>
+    <ul>
+        <li>𝗦𝘂𝗽𝗲𝗿𝘃𝗶𝘀𝗲𝗱 𝗟𝗲𝗮𝗿𝗻𝗶𝗻𝗴 (ML-Tutor uses this!!): This is like a teacher giving you flashcards with the answers on the back. The machine learns by looking at data that is already labeled.
+        </li>
+
+        <li>𝗨𝗻𝘀𝘂𝗽𝗲𝗿𝘃𝗶𝘀𝗲𝗱 𝗟𝗲𝗮𝗿𝗻𝗶𝗻𝗴: The machine is given a huge pile of data with no labels and has to find hidden patterns and group things together all by itself.
+        </li>
+    </ul>
+<h3>2. Context of ML-Tutor</h3>
+    <p>If you look at the red-colored Model block in the app, you will see a drop-down menu called Algorithm. An algorithm is simply a step-by-step mathematical recipe that the computer follows.</p>
+    <p> ML-Tutor deals with "𝗖𝗹𝗮𝘀𝘀𝗶𝗳𝗶𝗰𝗮𝘁𝗶𝗼𝗻 𝗔𝗹𝗴𝗼𝗿𝗶𝘁𝗵𝗺𝘀" i.e. The AI would arrange things into groups based on learned patterns. 𝘌𝘹𝘢𝘮𝘱𝘭𝘦: 𝘐𝘴 𝘵𝘩𝘪𝘴 𝘢𝘯 𝘪𝘮𝘢𝘨𝘦 𝘰𝘧 𝘢 𝘥𝘰𝘨 𝘰𝘳 𝘢 𝘤𝘢𝘵? 𝘐𝘴 𝘵𝘩𝘪𝘴 𝘧𝘭𝘰𝘸𝘦𝘳 𝘢𝘯 𝘪𝘳𝘪𝘴 𝘰𝘳 𝘯𝘰𝘵?</p>
+    <p> ML models/Algorithms that ML-Tutor uses are:</p>
+    <ul>
+        <li>𝗞-𝗡𝗲𝗮𝗿𝗲𝘀𝘁 𝗡𝗲𝗶𝗴𝗵𝗯𝗼𝘂𝗿𝘀 (𝗞𝗡𝗡): </li>
+        <img src="/src/images/knn.png" alt="KNN Graph" style="width: 30%; max-width: 400px; border-radius: 8px; margin: 10px 0;" />
+        <ul>
+            <li>𝗧𝗵𝗲 𝗔𝗻𝗮𝗹𝗼𝗴𝘆: "Tell me who your friends are, and I'll tell you who you are."</li>
+            <li>𝗛𝗼𝘄 𝗶𝘁 𝘄𝗼𝗿𝗸𝘀:This algorithm looks at data points plotted on a graph. When a new, unknown data point arrives, the computer looks at its "𝗞" 𝗰𝗹𝗼𝘀𝗲𝘀𝘁 𝗻𝗲𝗶𝗴𝗵𝗯𝗼𝗿𝘀 (where 𝙆 is just a number, like 𝟱). The new data point adopts the category that the majority of its neighbors belong to.</li>
+        </ul>
+        <li>𝗟𝗼𝗴𝗶𝘀𝘁𝗶𝗰 𝗥𝗲𝗴𝗿𝗲𝘀𝘀𝗶𝗼𝗻:</li>
+        <img src="/src/images/logistic_regression.gif" alt="Logistic Regression Curve" style="width: 55%; max-width: 400px; border-radius: 8px; margin: 10px 0;" />
+        <ul>
+            <li>𝗧𝗵𝗲 𝗔𝗻𝗮𝗹𝗼𝗴𝘆: "Flipping a coin based on odds."</li>
+            <li>𝗛𝗼𝘄 𝗶𝘁 𝘄𝗼𝗿𝗸𝘀:It uses a special mathematical formula to calculate the 𝗽𝗿𝗼𝗯𝗮𝗯𝗶𝗹𝗶𝘁𝘆 (a score between 𝟬 and 𝟭) that a data point belongs to a specific category. If the score is higher than a certain cutoff (like 𝟬.𝟱), it gets one label; if it's lower, it gets the other.</li>
+        </ul>
+        <li>𝗗𝗲𝗰𝗶𝘀𝗶𝗼𝗻 𝗧𝗿𝗲𝗲𝘀:</li>
+        <img src="/src/images/decisionTrees.png" alt="Decision Tree Branches" style="width: 55%; max-width: 400px; border-radius: 8px; margin: 10px 0;" />
+        <ul>
+            <li>𝗧𝗵𝗲 𝗔𝗻𝗮𝗹𝗼𝗴𝘆: "Dumb Charades : Guess the movie name by answering a series of small questions."</li>
+            <li>𝗛𝗼𝘄 𝗶𝘁 𝘄𝗼𝗿𝗸𝘀: The computer creates a branching set of true/false questions based on the data's features. It asks the most important question first, and based on the answer, splits the data down different branches until it reaches a final prediction.</li>
+        </ul>
+    </ul>
+
+
+<h3>3. Key Takeaway</h3>
+<p>Generalization is the goal: Models must perform well on new, unseen data, not just the training dataset.</p>
+<!-- <ul>
+    <li>𝗧𝗵𝗲 𝗜𝗻𝗽𝘂𝘁 (𝗟𝗲𝗳𝘁 𝗔𝗿𝗿𝗼𝘄): Make sure the wire coming into the Model node comes from the orange Preprocessing node. This guarantees your algorithm is "eating" clean, error-free data.</li>
+    <li>𝗧𝗵𝗲 𝗢𝘂𝘁𝗽𝘂𝘁 (𝗥𝗶𝗴𝗵𝘁 𝗔𝗿𝗿𝗼𝘄): Make sure the wire coming out of the Model node connects to the green Evaluation node. The Evaluation node acts as the "final exam" to tell you exactly how accurate your model's predictions are.</li>
+</ul> -->

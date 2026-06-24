@@ -39,13 +39,25 @@ export default function LiveAnalyticsDashboard() {
   const [liveSammData, setLiveSammData] = useState<any[]>([]);
 
   useEffect(() => {
-    const ws = new WebSocket(`${import.meta.env.VITE_WS_URL}/ws/dashboard`);
+    console.log("Dashboard Mounted");
+
+    const ws = new WebSocket(
+      `${import.meta.env.VITE_WS_URL}/ws/dashboard`
+    );
+
+    ws.onopen = () => {
+      console.log("Dashboard WS Open");
+    };
+
+    ws.onclose = () => {
+      console.log("Dashboard WS Closed");
+    };
     
     ws.onmessage = (event) => {
       const newLog = JSON.parse(event.data);
       
       if (newLog.event_type === "SAMM_ADJUSTMENT") {
-        // 1. Update SAMM Chart State
+        // Update SAMM Chart State
         setLiveSammData((prevData) => {
           const newPoint = {
             name: formatTime(newLog.timestamp),
@@ -58,7 +70,7 @@ export default function LiveAnalyticsDashboard() {
         });
 
       } else if (newLog.event_type === "AFFECT_STATE") { 
-        // 2. Update Webcam Affect Chart State (Assuming you name the event this)
+        // Update Webcam Affect Chart State (Assuming you name the event this)
         setLiveAffectData((prevData) => {
           const newPoint = {
             name: formatTime(newLog.timestamp),
@@ -70,11 +82,14 @@ export default function LiveAnalyticsDashboard() {
       }
     };
 
-    return () => ws.close();
+    return () => {
+      console.log("Dashboard Unmounted");
+      ws.close();
+    };
   }, []);
 
   // --- CHART CONFIGURATIONS ---
-  // 1. Webcam Options (-1 to 1 Scale)
+  // Webcam Options (-1 to 1 Scale)
   const affectChartOptions = {
     responsive: true,
     maintainAspectRatio: false,
@@ -87,14 +102,14 @@ export default function LiveAnalyticsDashboard() {
     plugins: { legend: { position: 'top' as const } }
   };
 
-  // 2. SAMM Options (0 to 5 Scale)
+  // SAMM Options (0 to 5 Scale)
   const sammChartOptions = {
     responsive: true,
     maintainAspectRatio: false,
     animation: { duration: 0 }, 
     scales: {
       y: { min: -1, max: 1, grid: { color: '#e5e7eb' } }, 
-      // CHANGED: Turned ticks to display: true and angled them
+      // Turned ticks to display: true and angled them
       x: { grid: { display: false }, ticks: { display: true, maxRotation: 45, minRotation: 45, font: { size: 10 } } } 
     },
     plugins: { legend: { position: 'top' as const } }
@@ -155,7 +170,7 @@ export default function LiveAnalyticsDashboard() {
           </div>
         )}
       </div>
-
+      
     </div>  
   );
 }

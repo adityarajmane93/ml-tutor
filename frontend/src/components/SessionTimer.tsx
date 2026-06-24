@@ -7,15 +7,9 @@ import { logEvent } from '../services/logger';
 export default function SessionTimer() {
   const [timeElapsed, settimeElapsed] = useState(0); 
   const [showTime, setShowTime] = useState(false);
-  const [showPopup, setShowPopup] = useState(false); // Tracks if the 1-hour popup should show 
 
-  // 1. Timer Logic (1 Hour Limit)
+  // Timer Logic
   useEffect(() => {
-    // 3600 seconds = 1 hour. Stop counting and show the popup. ---
-    // if (timeElapsed >= 3600) {
-    //     setShowPopup(true);
-    //     return;
-    // }
 
     const timerId = setInterval(() => {
       settimeElapsed((prev) => prev + 1);
@@ -24,7 +18,7 @@ export default function SessionTimer() {
     return () => clearInterval(timerId);
   }, [timeElapsed]);
 
-  // 2. Auto-Close Logic (5 Seconds)
+  // Auto-Close Logic (5 Seconds)
   useEffect(() => {
     let timeoutId: ReturnType<typeof setTimeout>;
 
@@ -39,7 +33,6 @@ export default function SessionTimer() {
     return () => {
       if (timeoutId){ 
             clearTimeout(timeoutId);
-            
         }
     };
   }, [showTime]);
@@ -71,22 +64,25 @@ export default function SessionTimer() {
       {/* --- THE CLOCK WIDGET --- */}
       <div 
         style={{
-          position: 'fixed',
-          top: '20px',
-          right: '100px',
           display: 'flex',
           alignItems: 'center',
+          justifyContent: 'center',
           gap: '8px',
           backgroundColor: '#ffffff', 
-          border: '3px solid #111827', 
-          padding: '8px 12px',
+          border: '4px solid #111827', 
+          padding: '10px 10px',
+          height: '50px', // Fixed height to match the notebook button
+          boxSizing: 'border-box',
+          boxShadow: '2.5px 2.5px 0px #111827', 
           borderRadius: '8px',
-          boxShadow: '4px 4px 0px #111827', 
           cursor: 'pointer',
-          zIndex: 1000, 
-          userSelect: 'none'
+          userSelect: 'none',
+          transition: "transform 0.1s ease",
         }}
-        onClick={handleClockClick} // <-- Change this line!
+        onClick={handleClockClick}
+        onMouseDown={(e) => e.currentTarget.style.transform = "translate(2px, 2px)"}
+        onMouseUp={(e) => e.currentTarget.style.transform = "none"}
+        onMouseLeave={(e) => e.currentTarget.style.transform = "none"}
       >
         <span style={{ fontSize: '1.5rem', lineHeight: '1' }}> ⏰ </span>
         
@@ -97,51 +93,6 @@ export default function SessionTimer() {
         )}
       </div>
 
-      {/* --- THE "TIME UP" POPUP MODAL --- */}
-      {showPopup && (
-        <div style={{
-          position: 'fixed',
-          top: 0, 
-          left: 0, 
-          width: '100vw', 
-          height: '100vh',
-          backgroundColor: 'rgba(0, 0, 0, 0.6)', // Dark semi-transparent background
-          display: 'flex', 
-          justifyContent: 'center', 
-          alignItems: 'center',
-          zIndex: 9999 // Ensures it sits above absolutely everything
-        }}>
-          <div style={{
-            backgroundColor: '#ffffff',
-            padding: '40px',
-            border: '4px solid #111827',
-            boxShadow: '8px 8px 0px #111827', // Matches your brutalist styling!
-            borderRadius: '12px',
-            textAlign: 'center',
-            maxWidth: '400px'
-          }}>
-            <h2 style={{ marginTop: 0, fontSize: '2rem' }}>⏳ Timer Alert!</h2>
-            <p style={{ fontSize: '1.2rem', fontWeight: 'bold', marginBottom: '24px' }}>
-              1 Hour has elapsed.
-            </p>
-            <button 
-              onClick={() => setShowPopup(false)}
-              style={{
-                padding: '10px 24px',
-                backgroundColor: '#111827',
-                color: '#ffffff',
-                border: 'none',
-                borderRadius: '6px',
-                cursor: 'pointer',
-                fontWeight: 'bold',
-                fontSize: '1.1rem'
-              }}
-            >
-              Dismiss
-            </button>
-          </div>
-        </div>
-      )}
     </>
   );
 }

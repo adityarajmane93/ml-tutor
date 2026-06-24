@@ -270,6 +270,13 @@ venv\Scripts\activate
 ```bash
 pip install -r requirements.txt
 ```
+## Get the Connection Pooler URL from your Supabase dashboard.
+
+- It would be in the following format : postgresql://postgres.[YOUR-PROJECT-REF]:[YOUR-PASSWORD]@aws-0-[REGION].pooler.supabase.com:6543/postgres
+- Paste it in the following file
+        ```bash
+        ml-tutor/backend/app/.env
+        ```
 
 ## Run Backend
 

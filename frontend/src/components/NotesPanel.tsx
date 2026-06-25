@@ -38,33 +38,21 @@ export default function NotesPanel({
   useEffect(() => {
     const textarea = textareaRef.current;
     if (textarea) {
-      // Briefly collapse the height to 0 to measure the true scroll height of the text inside
-      textarea.style.height = '0px';
+      // If the text is empty (like right after saving), force the shrink and stop!
+      if (typedNote.trim() === '') {
+        textarea.style.height = '38px';
+        textarea.style.overflowY = 'hidden';
+        return;
+      }
+
+      // Typing expansion logic
+      textarea.style.height = '38px'; 
       const scrollHeight = textarea.scrollHeight;
       
-      // Set the new height, but cap it at 150px (the threshold)
       textarea.style.height = `${Math.min(scrollHeight, 150)}px`;
-
-      //Hide the scrollbar entirely until the text actually hits the 150px threshold!
       textarea.style.overflowY = scrollHeight >= 150 ? 'auto' : 'hidden';
     }
-  }, [typedNote]); // This runs every single time the user presses a key!
-
-  // State to force a re-render when the reading pane finishes loading HTML
-  // const [domUpdate, setDomUpdate] = useState(0);
-
-  // useEffect(() => {
-  //   const pane = document.getElementById('middle-reading-pane');
-  //   if (!pane) return;
-
-  //   // Watch the reading pane for arriving text
-  //   const observer = new MutationObserver(() => {
-  //     setDomUpdate(prev => prev + 1);
-  //   });
-
-  //   observer.observe(pane, { childList: true, subtree: true, characterData: true });
-  //   return () => observer.disconnect();
-  // }, []);
+  }, [typedNote]);
 
   // Helper to find the absolute global position of the text
   const getGlobalOccurrence = (text: string) => {
@@ -128,7 +116,7 @@ export default function NotesPanel({
         
         flexShrink: 0, // Prevents the SAMM bar from getting squished by the columns
       }}>
-        <SAMMbar direction="column"/>
+        <SAMMbar/>
     </div>
         
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', maxHeight: '15px'}}>
@@ -248,12 +236,12 @@ export default function NotesPanel({
             display: 'flex',
             alignItems: 'flex-end', // Keeps the Save button anchored to the bottom!
             gap: '12px',
-            backgroundColor: '#ffffff',
-            padding: '8px',
-            boxShadow: textareaRef.current && textareaRef.current.scrollHeight > 50 
-              ? '0px -10px 20px rgba(0, 0, 0, 0.1)' // Stronger shadow so it pops over the notes
-              : '4px 4px 0px #111827',
-            transition: 'box-shadow 0.2s ease'
+            // backgroundColor: '#ffffff',
+            // padding: '8px',
+            // boxShadow: textareaRef.current && textareaRef.current.scrollHeight > 50 
+            //   ? '0px -10px 20px rgba(0, 0, 0, 0.1)' // Stronger shadow so it pops over the notes
+            //   : '4px 4px 0px #111827',
+            // transition: 'box-shadow 0.2s ease'
           }}>
             
             <textarea
@@ -275,7 +263,7 @@ export default function NotesPanel({
                 fontFamily: 'inherit',
                 fontSize: '1rem',
                 backgroundColor: '#ffffff',
-                boxShadow: textareaRef.current && textareaRef.current.scrollHeight > 50 
+                boxShadow: typedNote.trim().length > 40
                   ? '0px -10px 20px rgba(0, 0, 0, 0.1)' 
                   : '4px 4px 0px #111827',
                 transition: 'box-shadow 0.2s ease'

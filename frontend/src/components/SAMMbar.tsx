@@ -98,7 +98,7 @@ const SammBar = ({ leftLabel, rightLabel, bgImage, selectedValue, onSelect, bord
   );
 };
 
-export default function SAMMTracker({ direction = 'row' }: { direction?: 'row' | 'column' } = {}) {
+export default function SAMMTracker({  }: { } = {}) {
   const sessionId = useSessionStore((state) => state.sessionId);
   const [timePassed, setTimePassed] = useState(0);
   const [isFlashYellow, setIsFlashYellow] = useState(true);
@@ -189,8 +189,8 @@ export default function SAMMTracker({ direction = 'row' }: { direction?: 'row' |
         
         <div style={{ 
           display: 'flex', 
-          flexDirection: direction, // <-- Now it listens to the prop!
-          gap: direction === 'column' ? '5px' : '15px', // Adjusts gap automatically
+          flexDirection: "column", // <-- Now it listens to the prop!
+          gap: '5px', // Adjusts gap automatically
           justifyContent: 'center' 
         }}>
           

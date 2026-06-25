@@ -491,7 +491,7 @@ export default function PipelineFlow() {
             justifyContent: "center",
             alignItems: 'center'
           }}>
-            <SAMMbar direction="column"/>
+            <SAMMbar/>
           </div>
 
         {/* BOTTOM BOX: Reflection Panel */}

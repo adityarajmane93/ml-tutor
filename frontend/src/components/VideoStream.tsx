@@ -188,7 +188,7 @@ const processVideoLoop = async () => {
     const face = latestFaceRef.current;
 
     if (!face) {
-        setTimeout(processVideoLoop, 500);
+        setTimeout(processVideoLoop, 1000);
         return;
     }
       
@@ -243,7 +243,7 @@ const processVideoLoop = async () => {
         devLog("Face detected, but user is looking away. Dropped frame.");
       }
 
-    setTimeout(processVideoLoop, 500);
+    setTimeout(processVideoLoop, 1000);
   };
 
   const processRppgLoop = async () => {
@@ -326,7 +326,7 @@ const processVideoLoop = async () => {
   return (
     <>
       {/* Full-Screen Freeze Overlay if the camera drops */}
-      {cameraError && (
+      {/* {cameraError && (
         <div style={{
           position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh',
           backgroundColor: 'rgba(0, 0, 0, 0.85)', zIndex: 99999, // Way above the canvas!
@@ -349,7 +349,7 @@ const processVideoLoop = async () => {
             </button>
           </div>
         </div>
-      )}
+      )} */}
 
       {/* Invisible wrapper for the active logic */}
       <div style={{ position: "absolute", opacity: 0, width: "1px", height: "1px", overflow: "hidden" }}>

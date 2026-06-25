@@ -288,15 +288,31 @@ export function useNotesLogic(selectedType: string, onClose: () => void) {
   }, [activeReferencedNote]);
 
   const handleNoteReference = (note: SavedNote) => {
-    if (note.highlighted_text && note.start_index != null && note.end_index != null) {
-      setActiveReferencedNote(note.id);
-    } else {
-      setActiveReferencedNote(null); 
-    }
-
+    //  If the note belongs to a different tab, switch the tab FIRST
     if (note.node_type && note.node_type !== activeTab) {
       setActiveTab(note.node_type);
     }
+
+    // Use a tiny delay to wait for the new HTML page to fully render on the screen,
+    //    and to bypass any effects that clear highlights when tabs change!
+    setTimeout(() => {
+      if (note.highlighted_text && note.start_index != null && note.end_index != null) {
+        setActiveReferencedNote(note.id);
+        
+        // page automatically scrolls down to the active text!
+        setTimeout(() => {
+          // Instantly finds the exact active note, no matter what color it is!
+          const activeElement = document.querySelector('.active-highlight');
+          
+          if (activeElement) {
+            activeElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }
+        }, 300);
+
+      } else {
+        setActiveReferencedNote(null); 
+      }
+    }, 150); // 150ms is fast enough the user won't notice, but slow enough for React to finish rendering!
   };
 
   const handleTextSelection = () => {

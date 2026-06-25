@@ -77,6 +77,8 @@ const HighlightableText = ({
           <mark
             key={chunk.id}
             id={`highlight-${chunk.id}`}
+            // --- THE FIX: Add this dynamic class name! ---
+            className={activeReferencedNote === Number(chunk.id) ? 'active-highlight' : 'standard-highlight'}
             style={{
               backgroundColor:
                 activeReferencedNote === Number(chunk.id) ? '#fb923c' : '#fef08a',
@@ -187,9 +189,10 @@ type AllNotesViewProps = {
   notesList: SavedNote[];
   onReference: (note: SavedNote) => void;
   onDelete: (e: React.MouseEvent, noteId: number, nodeType?: string) => void;
+  logTabSwitch : (tabName: string) => void;
 };
 
-const AllNotesView = ({ notesList, onReference, onDelete }: AllNotesViewProps) => {
+const AllNotesView = ({ notesList, onReference, onDelete, logTabSwitch  }: AllNotesViewProps) => {
   if (notesList.length === 0) {
     return (
       <div style={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center', color: '#6b7280',  }}>
@@ -211,7 +214,12 @@ const AllNotesView = ({ notesList, onReference, onDelete }: AllNotesViewProps) =
           return (
             <div
               key={note.id}
-              onClick={() => { onReference(note); }}
+              onClick={() => {
+                if (note.node_type) {
+                  logTabSwitch(note.node_type);
+                }
+                onReference(note);
+              }}
               style={{
                 padding: '16px',
                 border: `3px solid ${config.color}`,
@@ -398,6 +406,7 @@ export default function LearnModal({
               notesList={logic.notesList} 
               onReference={logic.handleNoteReference} 
               onDelete={logic.handleDeleteNote}
+              logTabSwitch={logic.handleTabSwitch}
             />
           ) : (
             <>

@@ -1,9 +1,9 @@
 # Use the official Python image
 FROM python:3.10-slim
 
-# Install system dependencies required for OpenCV and MediaPipe
+# THE FIX: Swapped the deprecated mesa package for the modern libgl1 package
 RUN apt-get update && apt-get install -y \
-    libgl1-mesa-glx \
+    libgl1 \
     libglib2.0-0 \
     && rm -rf /var/lib/apt/lists/*
 
@@ -14,9 +14,8 @@ WORKDIR /code
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy the rest of your backend code (including the 'app' folder)
+# Copy the rest of your backend code
 COPY . .
 
-# Run the FastAPI app. 
-# "app.main:app" tells it to look inside the "app" folder for "main.py"
+# Run the FastAPI app
 CMD ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8080}"]

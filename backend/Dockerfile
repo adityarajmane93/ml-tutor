@@ -1,7 +1,6 @@
-# Use the official Python image
-FROM python:3.10-slim
+FROM python:3.11-slim
 
-# THE FIX: Swapped the deprecated mesa package for the modern libgl1 package
+# Install system dependencies required for OpenCV and MediaPipe
 RUN apt-get update && apt-get install -y \
     libgl1 \
     libglib2.0-0 \

@@ -1,5 +1,6 @@
 import {
   addEdge,
+  MarkerType,
   type Connection,
   type Edge,
 } from "reactflow";
@@ -27,9 +28,21 @@ export function createUpdatedEdges(
   edges: Edge[],
   params: Connection
 ) {
-
   return addEdge(
-    params,
+    {
+      ...params,
+      className: 'custom-edge', // class name we can target in CSS
+      style: {
+        strokeWidth: 3,   
+        stroke: '#080808', // Force the base line to be black
+      },
+      markerEnd: {
+        type: MarkerType.ArrowClosed,
+        width: 15,        
+        height: 15,       
+        color: '#080808',
+      },
+    },
     edges
   );
 }

@@ -1,110 +1,48 @@
-from fastapi import FastAPI
+import os
+import traceback
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 
-from sqlalchemy.orm import Session
+from app.db.db import SessionLocal, engine, Base
 
-from app.db.db import (
-    SessionLocal,
-    engine,
-)
-
-from app.db.db import Base
-
-from app.models.event import Event
-
-from app.models.event_model import EventModel
-
+# Import the new routers!
 from app.routes.pipeline import router as pipeline_router
+from app.routes import notes, consent, analytics, affect, streams
 
+# Initialize tables
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
 
-app.include_router(pipeline_router)
+FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:5173")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=[FRONTEND_URL],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
+@app.exception_handler(Exception)
+async def validation_exception_handler(request: Request, exc: Exception):
+    print("\n=== !!! BACKEND ERROR !!! ===")
+    traceback.print_exc()
+    print("=======================================\n")
+    return JSONResponse(
+        status_code=400,
+        content={"status": "error", "message": "Pipeline processing failed"}
+    )
 
 @app.get("/")
 def root():
-    return {
-        "message": "ML-Tutor Event Logger Running"
-    }
+    return {"message": "ML-Tutor Backend Running"}
 
-
-@app.post("/log-event")
-def log_event(event: Event):
-    db: Session = SessionLocal()
-
-    db_event = EventModel(
-        event_id=event.event_id,
-
-        session_id=event.session_id,
-
-        timestamp=event.timestamp,
-
-        event_type=event.event_type,
-
-        action=event.action,
-
-        source=event.source,
-
-        schema_version=event.schema_version,
-
-        event_metadata=event.metadata,
-    )
-
-    db.add(db_event)
-
-    db.commit()
-
-    db.close()
-
-    return {
-        "status": "success"
-    }
-
-
-@app.get("/events")
-def get_events():
-    db: Session = SessionLocal()
-
-    events = db.query(EventModel).all()
-
-    result = []
-
-    for event in events:
-        result.append({
-            "event_id": event.event_id,
-            "session_id": event.session_id,
-            "timestamp": event.timestamp,
-            "event_type": event.event_type,
-            "action": event.action,
-            "source": event.source,
-            "schema_version": event.schema_version,
-            "metadata": event.event_metadata,
-        })
-
-    db.close()
-
-    return result
-
-@app.delete("/events")
-def clear_events():
-    db: Session = SessionLocal()
-
-    db.query(EventModel).delete()
-
-    db.commit()
-
-    db.close()
-
-    return {
-        "status": "all events deleted"
-    }
+# Plug in the detached modules!
+app.include_router(pipeline_router) # Preserved your original pipeline router
+app.include_router(notes.router, prefix="/notes", tags=["Notes"])
+app.include_router(consent.router, prefix="/consent-forms", tags=["Consent"])
+app.include_router(analytics.router, tags=["Analytics"])
+app.include_router(affect.router, tags=["Affective Computing"])
+app.include_router(streams.router, prefix="/ws", tags=["WebSockets"])

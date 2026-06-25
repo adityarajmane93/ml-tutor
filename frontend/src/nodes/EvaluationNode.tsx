@@ -1,52 +1,54 @@
-import {
-  Handle,
-  Position,
-} from "reactflow";
+import { Handle, Position } from "reactflow";
+import { useReactFlow } from 'reactflow';
 
 export default function EvaluationNode({
-  data, selected,
+  id, data, selected,
 }: any) {
+
+  const { deleteElements } = useReactFlow();
+  
+    const handleDelete = (e: React.MouseEvent) => {
+      e.stopPropagation(); // Prevents the click from accidentally dragging/selecting the node
+      deleteElements({ nodes: [{ id }] }); // Triggers your existing deletion logic!
+    };
 
   return (
     <div
       style={{
-        background: "#0dc51c",
-
-        color: "white",
-
-        padding: "12px",
-
-        borderRadius: "12px",
-
-        minWidth: "160px",
-
+        background: "var(--success)",
+        color: "var(--surface)",
+        padding: "10px 12px", // Slimmer padding
+        minWidth: "140px",    // Slimmer width
         textAlign: "center",
-
-        fontWeight: 600,
-
-        boxShadow:
-          "0 2px 6px rgba(0,0,0,0.12)",
-          border: selected ? "4px solid #fbff00" : "4px solid transparent",
+        fontWeight: 800,
+        borderRadius: "0",
+        border: selected ? "1px solid var(--primary)" : "1px solid var(--text)",
       }}
     >
+      <button className="neo-delete-btn" style={{background: "var(--success)"}} onClick={handleDelete} title="Delete Node">
+        X
+      </button>
+      <Handle type="target" position={Position.Left} id="left-target" />
+      <Handle type="source" position={Position.Left} id="left-source" />
+     
+      <div style={{ fontSize: "0.95rem", textTransform: "uppercase", marginBottom: "6px" }}>
+        {data.label}
+      </div>
 
-
-      <Handle
-        type="target"
-        position={Position.Left}
-      />
-
-      {data.label}
-
-      <p>
-  Accuracy:
-  {
-    data?.accuracy
-      ?.toFixed(2)
-  }
-</p>
-
- 
+      <div style={{ 
+        background: "var(--surface)", 
+        color: "var(--text)", 
+        padding: "4px 8px", // Slimmer padding
+        border: "2px solid var(--text)",
+        boxShadow: "2px 2px 0px 0px var(--text)",
+        fontSize: "0.85rem"
+      }}>
+        Accuracy: <br/>
+        <span style={{ fontSize: "1rem", fontWeight: 900 }}>
+          {data?.accuracy ? (data.accuracy.toFixed(2))*100 : "--"}
+        </span>
+        <span style={{ fontWeight: 'bold', fontSize: '0.95rem' }}> {data?.accuracy ? "%" : ""}</span> {/* add the % Symbol */}
+      </div>
     </div>
   );
 }

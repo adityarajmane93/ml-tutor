@@ -1,0 +1,33 @@
+<h2>Dataset Node</h2>
+
+<!-- <p>As we move ahead in the AI Project Cycle, we come across the second element which is: Data Acquisition. As the term clearly mentions, this stage is about acquiring data for the project. Let us first understand what is data. Data can be a piece of information or facts and statistics collected together for reference or analysis. Whenever we want an AI project to be able to predict an output, we need to train it first using data. For example, If you want to make an Artificially Intelligent system which can predict the salary of any employee based on his previous salaries, you would feed the data of his previous salaries into the machine. This is the data with which the machine can be trained. Now, once it is ready, it will predict his next salary efficiently. The previous salary data here is known as Training Data while the next salary prediction data set is known as the Testing Data. For better efficiency of an AI project, the Training data needs to be relevant and authentic. In the previous example, if the training data was not of the previous salaries but of his expenses, the machine would not have predicted his next salary correctly since the whole training went wrong. Similarly, if the previous salary data was not authentic, that is, it was not correct, then too the prediction could have gone wrong. Hence…. For any AI project to be efficient, the training data should be authentic and relevant to the problem statement scoped. Look at your problem statement once again and try to find the data features required to address this issue. Data features refer to the type of data you want to collect. In our previous example, data features would be salary amount, increment percentage, increment period, bonus, etc.</p> -->
+
+<!-- <p>
+  Welcome to the foundation of Machine Learning! Before a machine can make predictions, recognize patterns, or solve problems, it must be fed information. In your ML-Tutor workspace, the Dataset Node is where this journey begins.
+</p> -->
+
+<p>If you ever feel stuck, use the "How are you feeling?" tracker at the top of your screen to log your emotions.</p>
+
+<h3>1. Intuision </h3>
+
+  <p>Imagine you are studying for a massive math test. If you want to get an A, you need a textbook full of practice problems. In the world of Machine Learning, the Dataset is our textbook. It is a large collection of information, facts, or numbers that we use to teach the computer.</p>
+  <p>Whenever we want an Artificial Intelligence system to predict something, we have to feed it historical data first. For example, if you want an AI to predict whether it will rain tomorrow, you cannot just ask it. You have to feed it thousands of weather reports from the past ten years. The computer will look at all those past examples to learn what clouds, temperatures, and winds usually lead to rain.</p>
+  <img src="/src/images/Data.png" alt="What is Data?" style="display: flex; justify-content: center; width: 15%; border-radius: 8px; margin: 20px auto;" />
+<h3>2. Context of ML-Tutor </h3>
+
+  <p> In the context of our ML-Tutor workspace, you will be working with structured tabular data (like a spreadsheet), which is loaded by clicking the "𝗖𝗵𝗼𝗼𝘀𝗲 𝗙𝗶𝗹𝗲" button on the Dataset node. </p>
+  <p>When you upload a file like health_data.csv or iris.csv, the columns in your file represent Data Features. Features are the individual independent variables that act as clues for the machine. For example, if you are predicting a flower's species (like in iris.csv), the features might be the petal length or sepal width.</p>
+
+<h3>3. Test Train Split</h3>
+
+  <p>You cannot use 100% of your data to teach the machine. If you do, you will never know if the machine actually learned the underlying patterns, or if it just memorized the answers! </p>
+  <p>To validate model quality, data scientists use a technique called the Test-Train Split. We divide our acquired dataset into two separate groups:</p>
+  <img src="/src/images/test_train_split.gif" alt="Training vs Testing Data Split" style="display: flex; justify-content: center; width: 50%; border-radius: 8px; margin: 20px auto" />
+  <ul>
+    <li>  𝗧𝗿𝗮𝗶𝗻𝗶𝗻𝗴 𝗗𝗮𝘁𝗮 (𝗨𝘀𝘂𝗮𝗹𝗹𝘆 𝟳𝟬% 𝘁𝗼 𝟴𝟬%):  This is the massive chunk of data we feed into the Model Node to teach the algorithm. The machine looks at this data to find patterns and build its mathematical rules. </li>
+    <li>  𝗧𝗲𝘀𝘁𝗶𝗻𝗴 𝗗𝗮𝘁𝗮 (𝗨𝘀𝘂𝗮𝗹𝗹𝘆 𝟮𝟬% 𝘁𝗼 𝟯𝟬%):  This data is locked away and kept completely hidden from the machine during the learning phase. Once the machine has built its model, we use this hidden data as a "final exam" to evaluate its accuracy. </li>
+  </ul>
+
+<h3>4. 𝗜𝗺𝗽𝗼𝗿𝘁𝗮𝗻𝗰𝗲 𝗼𝗳 𝗗𝗮𝘁𝗮:   </h3>
+
+  <p>There is a golden rule in Machine Learning: Garbage In, Garbage Out. If your dataset is full of errors, lies, or blank spaces, your AI is going to learn the wrong lessons and make terrible predictions. A model is only as smart as the data you give it.</p>

@@ -1,121 +1,256 @@
+/* 1. Import Neobrutalism Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;700&display=swap');
+
 :root {
-  --text: #6b6375;
-  --text-h: #08060d;
-  --bg: #fff;
-  --border: #e5e4e7;
-  --code-bg: #f4f3ec;
-  --accent: #aa3bff;
-  --accent-bg: rgba(170, 59, 255, 0.1);
-  --accent-border: rgba(170, 59, 255, 0.5);
-  --social-bg: rgba(244, 243, 236, 0.5);
-  --shadow:
-    rgba(0, 0, 0, 0.1) 0 10px 15px -3px, rgba(0, 0, 0, 0.05) 0 4px 6px -2px;
+  /* Design System Tokens */
+  --primary: #f1cf53;
+  --secondary: #432DD7;
+  --success: #16A34A;
+  --warning: #D97706;
+  --danger: #DC2626;
+  --surface: #FBFBF9;
+  --text: #1C293C;
+  --flow: #a855f7;
+  
+  /* Structural Variables */
+  --border-width: 4px;
+  --hard-shadow: 6px 6px 0px 0px var(--text);
+  --hard-shadow-active: 2px 2px 0px 0px var(--text);
 
-  --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --heading: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --mono: ui-monospace, Consolas, monospace;
+  /* Typography Setup */
+  --sans: 'Inter', system-ui, sans-serif;
+  --mono: 'JetBrains Mono', monospace;
 
-  font: 18px/145% var(--sans);
-  letter-spacing: 0.18px;
-  color-scheme: light dark;
+  font: 17px/1.5 var(--sans);
+  font-family: var(--sans);
   color: var(--text);
-  background: var(--bg);
-  font-synthesis: none;
+  background: var(--surface);
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-
-  @media (max-width: 1024px) {
-    font-size: 16px;
-  }
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --text: #9ca3af;
-    --text-h: #f3f4f6;
-    --bg: #16171d;
-    --border: #2e303a;
-    --code-bg: #1f2028;
-    --accent: #c084fc;
-    --accent-bg: rgba(192, 132, 252, 0.15);
-    --accent-border: rgba(192, 132, 252, 0.5);
-    --social-bg: rgba(47, 48, 58, 0.5);
-    --shadow:
-      rgba(0, 0, 0, 0.4) 0 10px 15px -3px, rgba(0, 0, 0, 0.25) 0 4px 6px -2px;
-  }
-
-  #social .button-icon {
-    filter: invert(1) brightness(2);
-  }
-}
-
-#root {
-  width: 1126px;
-  max-width: 100%;
-  margin: 0 auto;
-  text-align: center;
-  border-inline: 1px solid var(--border);
-  min-height: 100svh;
-  display: flex;
-  flex-direction: column;
-  box-sizing: border-box;
 }
 
 body {
   margin: 0;
+  background-color: var(--surface);
+  
+  /* Neobrutalist Graph Paper Grid */
+  background-image: 
+    linear-gradient(rgba(28, 41, 60, 0.08) 2px, transparent 2px),
+    linear-gradient(90deg, rgba(28, 41, 60, 0.08) 2px, transparent 2px);
+  background-size: 40px 40px;
+  background-position: -2px -2px;
 }
 
-h1,
-h2 {
-  font-family: var(--heading);
-  font-weight: 500;
-  color: var(--text-h);
+#root {
+  width: 100%;
+  max-width: 1450px;
+  margin: 0 auto;
+  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  padding-bottom: 40px;
 }
 
-h1 {
-  font-size: 56px;
-  letter-spacing: -1.68px;
-  margin: 32px 0;
-  @media (max-width: 1024px) {
-    font-size: 36px;
-    margin: 20px 0;
-  }
-}
-h2 {
-  font-size: 24px;
-  line-height: 118%;
-  letter-spacing: -0.24px;
-  margin: 0 0 8px;
-  @media (max-width: 1024px) {
-    font-size: 20px;
-  }
-}
-p {
-  margin: 0;
+/* Application-wide change */
+::selection {
+  background-color: #ffeb3b; /* Highlight background color */
+  color: #000000;             /* Highlight text color */
 }
 
-code,
-.counter {
-  font-family: var(--mono);
-  display: inline-flex;
-  border-radius: 4px;
-  color: var(--text-h);
+/* Specific component change */
+.custom-highlight-zone ::selection {
+ background-color: #ffeb3b; /* Highlight background color */
+ color: #000000;             /* Highlight text color */
 }
 
-code {
-  font-size: 15px;
-  line-height: 135%;
-  padding: 4px 8px;
-  background: var(--code-bg);
+h1, h2 {
+  font-family: var(--sans);
+  font-weight: 900;
+  color: var(--text);
+  text-transform: uppercase;
+  letter-spacing: -1px;
+}
+
+/* React Flow Global Overrides for Neobrutalism */
+.react-flow__node {
+  border: var(--border-width) solid var(--text) !important;
+  box-shadow: var(--hard-shadow) !important;
+  border-radius: 0 !important; /* Brutalism favors sharp corners */
+  transition: transform 0.1s ease, box-shadow 0.1s ease;
 }
 
 .react-flow__node.selected {
+  outline: none !important;
+  border-color: var(--secondary) !important;
+  box-shadow: 6px 6px 0px 0px var(--secondary) !important;
+  transform: translate(-2px, -2px);
+}
 
-  outline: 3px solid #2563eb;
+.referenced-highlight {
+  animation: pulseHighlight 2s ease;
+}
 
-  outline-offset: 2px;
+.react-flow__edge.custom-edge.selected .react-flow__edge-path,
+.react-flow__edge.selected .react-flow__edge-path {
+  stroke: var(--flow) !important;
+  stroke-width: 4 !important; /* Makes it slightly thicker on click so it pops! */
+}
 
-  box-shadow:
-    0 0 0 4px rgba(37, 99, 235, 0.2);
+/* Remove React Flow's default weird grey selection outline */
+.react-flow__edge.selected .react-flow__edge-interaction {
+  stroke: transparent !important;
+}
+
+body, button, input, textarea, select {
+  font-family: inherit;
+}
+
+/* THE SLEDGEHAMMER: Force React Flow nodes AND every single element inside them (*) to obey */
+.react-flow__node,
+.react-flow__node * {
+  font-family: var(--sans) !important;
+}
+
+.neo-card {
+  background-color: var(--surface);
+  border: var(--border-width) solid var(--text);
+  border-radius: 12px;
+  box-shadow: var(--hard-shadow);
+  padding: 24px;
+}
+
+/* The Interactive Button */
+.neo-btn {
+  font-family: var(--sans);
+  font-weight: 800;
+  font-size: 1.1rem;
+  color: var(--text);
+  background-color: var(--primary);
+  border: var(--border-width) solid var(--text);
+  border-radius: 8px;
+  box-shadow: 2.5px 2.5px 0px 0px var(--text);
+  cursor: pointer;
+  padding: 12px 24px;
+  transition: transform 0.1s ease, box-shadow 0.1s ease;
+}
+
+.neo-btn:hover {
+  transform: translate(2px, 2px);
+  box-shadow: 2px 2px 0px 0px var(--text);
+}
+
+.neo-btn:disabled {
+  background-color: #e5e7eb;
+  color: #9ca3af;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+/* The Text Input / Textarea */
+.neo-input {
+  font-family: var(--sans);
+  border: 3px solid var(--text);
+  border-radius: 8px;
+  box-shadow: 4px 4px 0px 0px var(--text);
+  padding: 12px;
+  transition: transform 0.1s ease, box-shadow 0.1s ease;
+}
+
+.neo-input:focus {
+  outline: none;
+  transform: translate(2px, 2px);
+  box-shadow: 2px 2px 0px 0px var(--text);
+}
+
+/* Small List Items (Notes) */
+.neo-list-item {
+  background-color: #ffffff;
+  border: 3px solid var(--text);
+  border-radius: 8px;
+  box-shadow: 4px 4px 0px 0px var(--text);
+  padding: 12px;
+  cursor: pointer;
+  transition: transform 0.1s ease, box-shadow 0.1s ease;
+}
+
+.neo-list-item:hover {
+  transform: translate(2px, 2px);
+  box-shadow: 2px 2px 0px 0px var(--text);
+}
+
+.neo-page-wrapper {
+  background: radial-gradient(circle at top left, rgba(255,255,255,1) 0%, rgba(243,244,246,1) 100%);
+  border: 6px solid var(--text);
+  border-radius: 16px;
+  box-shadow: 6px 6px 0 var(--text);
+}
+
+.neo-instruction-card {
+  background: #ffffff;
+  border: 6px solid #d1d5db;
+  border-radius: 14px;
+  box-shadow: 0 4px 0 var(--text);
+}
+
+.neo-badge {
+  border-radius: 8px;
+  color: #ffffff;
+  font-weight: 900;
+  font-size: 1rem;
+}
+
+.neo-task-card {
+  border: 2px solid #e5e7eb;
+  border-radius: 12px;
+  background: #fafafa;
+  color: var(--text);
+  font-weight: 700;
+}
+
+/* SAMM Slider Base */
+.neo-slider-track {
+  border-radius: 6px;
+  cursor: pointer;
+  background-size: 100% 100%;
+  background-position: center;
+  background-repeat: no-repeat;
+  overflow: hidden;
+}
+
+.neo-slider-fill {
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 100%;
+  background-color: rgba(241, 207, 83, 0.5);
+  pointer-events: none;
+}
+
+/* Delete Button for Nodes and Edges */
+.neo-delete-btn {
+  position: absolute;
+  top: -12px;
+  right: -12px;
+  width: 28px;
+  height: 28px;
+  color: white;
+  border: 2px solid var(--text);
+  border-radius: 50%; /* Circle */
+  font-family: var(--sans);
+  font-weight: 900;
+  font-size: 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 2px 2px 0px var(--text);
+  z-index: 1000;
+  padding: 0;
+  transition: transform 0.1s ease, box-shadow 0.1s ease;
+}
+
+.neo-delete-btn:hover {
+  transform: translate(2px, 2px);
 }

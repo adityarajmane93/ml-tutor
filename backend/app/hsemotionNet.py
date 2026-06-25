@@ -5,7 +5,7 @@ from timm.models.efficientnet import EfficientNet
 from hsemotion.facial_emotions import HSEmotionRecognizer
 
 # Tell PyTorch 2.6+ it is safe to load this specific architecture
-torch.serialization.add_safe_globals([EfficientNet])
+torch.serialization.add_safe_globals([timm.layers.conv2d_same.Conv2dSame])
 
 # GLOBAL INITIALIZATION (Runs only once!)
 print("Loading HSEmotion Model into memory...")

@@ -1,6 +1,7 @@
-FROM python:3.11-slim
+# THE FINAL FIX: Matched to the exact Python 3.14 version from your Conda environment
+FROM python:3.14-slim
 
-# Install system dependencies required for OpenCV and MediaPipe
+# Install system dependencies required for OpenCV and MediaPipe on Linux
 RUN apt-get update && apt-get install -y \
     libgl1 \
     libglib2.0-0 \

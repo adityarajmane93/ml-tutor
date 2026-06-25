@@ -1,5 +1,17 @@
 import os
 import traceback
+import torch 
+
+# This intercepts the library's internal code and forces it to bypass the security block.
+_original_load = torch.load
+
+def _patched_load(*args, **kwargs):
+    kwargs['weights_only'] = False
+    return _original_load(*args, **kwargs)
+
+torch.load = _patched_load
+# ---------------------------------------
+
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse

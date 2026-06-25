@@ -4,16 +4,6 @@ import torch
 from timm.models.efficientnet import EfficientNet
 from hsemotion.facial_emotions import HSEmotionRecognizer
 
-# This intercepts the library's internal code and forces it to bypass the security block.
-_original_load = torch.load
-
-def _patched_load(*args, **kwargs):
-    kwargs['weights_only'] = False
-    return _original_load(*args, **kwargs)
-
-torch.load = _patched_load
-# ---------------------------------------
-
 # GLOBAL INITIALIZATION (Runs only once!)
 print("Loading HSEmotion Model into memory...")
 device = 'cuda' if torch.cuda.is_available() else 'cpu'

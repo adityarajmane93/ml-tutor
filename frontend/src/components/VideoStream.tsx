@@ -45,7 +45,7 @@ export default function VideoStream() {
     return () => { active = false; };
   }, []);
 
-  const baseUrl = import.meta.env.VITE_API_URL || "http://localhost:8000";
+  const baseUrl = import.meta.env.VITE_API_URL; // || "http://localhost:8000"
     const wsUrl = baseUrl.replace(/^http/, "ws") + "/ws/rppg";
 
     const connectRppgSocket = () => {

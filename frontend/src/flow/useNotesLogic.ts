@@ -354,7 +354,7 @@ export function useNotesLogic(selectedType: string, onClose: () => void) {
     const currentTimestamp = Math.floor(Date.now() / 1000).toString();
 
     try {
-      const response = await axios.post(`${import.meta.env.VITE_API_URL}/notes`, {
+      const response = await axios.post(`${import.meta.env.VITE_API_URL}/notes/`, {
         session_id: sessionId,
         node_type: activeTab,
         highlighted_text: highlightData?.text || null,

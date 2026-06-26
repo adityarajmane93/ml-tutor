@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, useNavigate } from 'react-router-dom';
 
-import logo from '/public/images/logo.png'; 
-import laLogo from '/public/images/la_logo.png'; 
-import etLogo from '/public/images/et_logo.png'; 
+import logo from '/images/logo.png'; 
+import laLogo from '/images/la_logo.png'; 
+import etLogo from '/images/et_logo.png'; 
 
 import PipelineCanvas from './components/PipelineCanvas'; 
 import ConsentFlow from './components/ConsentFlow'; 

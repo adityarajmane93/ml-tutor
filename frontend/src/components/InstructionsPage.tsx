@@ -1,10 +1,10 @@
 // import React, { useState } from 'react';
-import sammImg from "/public/images/samm_bar.png";
-import timerImg from "/public/images/timer.png";
-import learnImg from "/public/images/learnTab.png";
-import notesImg from "/public/images/allNotes.png";
-import canvasImg from "/public/images/canvas.png";
-import componentsImg from "/public/images/components.png";
+import sammImg from "/images/samm_bar.png";
+import timerImg from "/images/timer.png";
+import learnImg from "/images/learnTab.png";
+import notesImg from "/images/allNotes.png";
+import canvasImg from "/images/canvas.png";
+import componentsImg from "/images/components.png";
 
 type SectionProps = {
   number: string;

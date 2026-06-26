@@ -57,7 +57,7 @@ export default function ProblemStatement({ onComplete }: { onComplete: () => voi
           {/* DATASET DOWNLOAD BUTTON */}
           <div style={{ marginTop: '24px' }}>
             <a 
-              href="../health_data.csv" 
+              href="/health_data.csv" 
               download="health_data.csv"
               className="neo-btn"
               style={{ 

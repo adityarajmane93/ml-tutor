@@ -251,8 +251,8 @@ export function useNotesLogic(selectedType: string, onClose: () => void) {
       try {
         const baseUrl = import.meta.env.VITE_API_URL; 
         const url = activeTab === 'allNotes'
-            ? `${baseUrl}/notes?session_id=${sessionId}`
-            : `${baseUrl}/notes?session_id=${sessionId}&node_type=${activeTab}`;
+            ? `${baseUrl}/notes/?session_id=${sessionId}`
+            : `${baseUrl}/notes/?session_id=${sessionId}&node_type=${activeTab}`;
 
         const response = await axios.get(url);
         

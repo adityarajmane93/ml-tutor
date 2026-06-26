@@ -5,9 +5,9 @@ import { devLog }
   from "../flow/logger"
 
 // ─── IMPORT SAMM IMAGES ───
-import h1 from '../images/1.png';
-import e1 from '../images/2.png';
-import c1 from '../images/3.png';
+import h1 from '/public/images/1.png';
+import e1 from '/public/images/2.png';
+import c1 from '/public/images/3.png';
 
 type SammBarProps = {
   leftLabel: string;

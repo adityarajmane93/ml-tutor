@@ -22,7 +22,7 @@ export async function logEvent(
   try {
     // 1. Database Persistence
     // We ALWAYS use Axios to hit the FastAPI route that contains your SQLAlchemy db.commit() logic
-    const response = await axios.post("http://localhost:8000/log-event", event);
+    const response = await axios.post(`${import.meta.env.VITE_API_URL}/log-event`, event);
     console.log(` [DB SAVED] ${action}`, response.data);
 
     // 2. elemetry Broadcast

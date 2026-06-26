@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { useState } from 'react';
 import { useSessionStore } from '../store/sessionStore';
-import signature from '../images/Signature.png';  
+import signature from '/public/images/Signature.png';  
 
 
 type ConsentFlowProps = {

@@ -69,7 +69,7 @@ export default function ConsentFlow({ onComplete }: ConsentFlowProps) {
           page_3: { child_name_optional: p3ChildName || null, guardian_name_optional: p3GuardianName || null, child_signature: p3ChildSignature, guardian_signature: p3GuardianSignature, date: today_date }
         };
 
-        await axios.post(`${import.meta.env.VITE_API_URL}/consent-forms`, payload);
+        await axios.post(`${import.meta.env.VITE_API_URL}/consent-forms/`, payload);
         onComplete(); 
 
       } catch (error) {

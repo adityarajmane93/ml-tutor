@@ -10,7 +10,7 @@ from app.services.websocket_manager import manager
 router = APIRouter()
 
 @router.post("/log-event")
-def log_event(event: Event):
+async def log_event(event: Event):
     db: Session = SessionLocal()
     db_event = EventModel(
         event_id=event.event_id,
@@ -25,6 +25,17 @@ def log_event(event: Event):
     db.add(db_event)
     db.commit()
     db.close()
+    # This beams the exact same data to your live dashboard.
+    await manager.broadcast_event({
+        "event_id": event.event_id,
+        "session_id": event.session_id,
+        "timestamp": event.timestamp,
+        "event_type": event.event_type,
+        "action": event.action,
+        "source": event.source,
+        "schema_version": event.schema_version,
+        "metadata": event.metadata,
+    })
     return {"status": "success"}
 
 @router.get("/events")

@@ -17,7 +17,7 @@ function AppContent() {
   const navigate = useNavigate();
 
   // State to track dashboard completion!
-  const [hasConsented, setHasConsented] = useState(false); //useState(true);
+  const [hasConsented, setHasConsented] =  useState(true); //useState(false);
   const [cameraReady, setCameraReady] = useState(false);
   const [instructionsViewed, setInstructionsViewed] = useState(false);
   const [problemViewed, setProblemViewed] = useState(false);

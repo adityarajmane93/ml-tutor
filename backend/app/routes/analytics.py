@@ -1,4 +1,4 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, BackgroundTasks
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
@@ -10,32 +10,44 @@ from app.services.websocket_manager import manager
 router = APIRouter()
 
 @router.post("/log-event")
-async def log_event(event: Event):
+def log_event(event: Event, background_tasks: BackgroundTasks): 
     db: Session = SessionLocal()
-    db_event = EventModel(
-        event_id=event.event_id,
-        session_id=event.session_id,
-        timestamp=event.timestamp,
-        event_type=event.event_type,
-        action=event.action,
-        source=event.source,
-        schema_version=event.schema_version,
-        event_metadata=event.metadata,
+
+    # 1. Safely handle the database transaction
+    try:
+        db_event = EventModel(
+            event_id=event.event_id,
+            session_id=event.session_id,
+            timestamp=event.timestamp,
+            event_type=event.event_type,
+            action=event.action,
+            source=event.source,
+            schema_version=event.schema_version,
+            event_metadata=event.metadata,
+        )
+        db.add(db_event)
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        raise e
+    finally:
+        db.close() # Always close the connection!
+
+    # 2. Offload the WebSocket broadcast to the background!
+    background_tasks.add_task(
+        manager.broadcast_event, 
+        {
+            "event_id": event.event_id,
+            "session_id": event.session_id,
+            "timestamp": event.timestamp,
+            "event_type": event.event_type,
+            "action": event.action,
+            "source": event.source,
+            "schema_version": event.schema_version,
+            "metadata": event.metadata,
+        }
     )
-    db.add(db_event)
-    db.commit()
-    db.close()
-    # This beams the exact same data to your live dashboard.
-    await manager.broadcast_event({
-        "event_id": event.event_id,
-        "session_id": event.session_id,
-        "timestamp": event.timestamp,
-        "event_type": event.event_type,
-        "action": event.action,
-        "source": event.source,
-        "schema_version": event.schema_version,
-        "metadata": event.metadata,
-    })
+
     return {"status": "success"}
 
 @router.get("/events")

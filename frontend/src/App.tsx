@@ -27,7 +27,7 @@ function AppContent() {
       
       { (
         <div style={{ padding: "18px 180px", display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "1px", gap: "1px" }}>
-            <img src={logo} alt="Logo" style={{ width: 80, height: 80, objectFit: "contain" }} />
+            <img src={etLogo} alt="CET logo" style={{ width: 80, height: 80, objectFit: "contain" }} />
           
           <div style={{ padding: "0px 0px 0px 80px",textAlign: "center", flex: 1 }}>
             <h1 style={{ margin: 0, fontSize: "2.4rem", lineHeight: 1, fontWeight: 900, color: "#111827", letterSpacing: "-0.03em"}}>
@@ -39,7 +39,7 @@ function AppContent() {
           </div>
           
           <div style={{ width: 200, display: "flex",  gap: "10px"}}> {/*justifyContent: "flex-end",*/}
-            <img src={etLogo} alt="CET logo" style={{ width: 80, height: 80, objectFit: "contain" }} />
+            {/* <img src={etLogo} alt="CET logo" style={{ width: 80, height: 80, objectFit: "contain" }} /> */}
             <img src={laLogo} alt="LA Lab logo" style={{ width: 80, height: 80, objectFit: "contain" }} />
           </div>
         </div>

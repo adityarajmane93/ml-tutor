@@ -7,10 +7,10 @@ from sqlalchemy.orm import sessionmaker, declarative_base
 load_dotenv()
 
 # 2. Fetch the URL securely
-SQLALCHEMY_DATABASE_URL = os.getenv("SUPABASE_DB_URL")
+SQLALCHEMY_DATABASE_URL = os.getenv("DATABASE_URL")
 
 if not SQLALCHEMY_DATABASE_URL:
-    raise ValueError("No SUPABASE_DB_URL found in environment variables!")
+    raise ValueError("No DATABASE_URL found in environment variables!")
 
 # 3. Create the engine
 engine = create_engine(

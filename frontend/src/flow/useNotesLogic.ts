@@ -145,7 +145,8 @@ export function useNotesLogic(selectedType: string, onClose: () => void) {
       const isTrackedElement = 
         target.closest('button') ||              // Ignores all buttons (sidebar, save, close, delete)
         target.tagName.toLowerCase() === 'textarea' || // Ignores typing
-        target.closest('mark');                  // Ignores clicking on yellow highlights
+        target.closest('mark') ||                  // Ignores clicking on yellow highlights
+        target.tagName.toLowerCase() === 'samm';
 
       // If it is a tracked element, stop here! Do not log coordinates.
       if (isTrackedElement) return;
@@ -307,7 +308,7 @@ export function useNotesLogic(selectedType: string, onClose: () => void) {
           if (activeElement) {
             activeElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
           }
-        }, 300);
+        }, 200);
 
       } else {
         setActiveReferencedNote(null); 

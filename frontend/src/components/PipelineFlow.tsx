@@ -314,33 +314,40 @@ export default function PipelineFlow() {
       ws.onmessage = (event) => {
         const result = JSON.parse(event.data);
         devLog("BACKEND WS RESPONSE:", result);
-
         if (result.error) {
           setReflectionMessage("Error");
           ws.close();
           return;
         }
-
-        if (result.accuracy !== undefined) {
-          if (result.accuracy >= 0.9) {
-            setReflectionMessage("The model performed very well.");
-          } else if (result.accuracy >= 0.7) {
-            setReflectionMessage("The model performed moderately well.");
-          } else {
-            setReflectionMessage("The model struggled to learn patterns.");
+        if (result.evaluations) {
+      
+          const evaluations = Object.values(result.evaluations);
+          if (evaluations.length > 0) {
+            const avgAccuracy = evaluations.reduce((sum: number, e: any) => sum + e.accuracy,0) / evaluations.length;
+            if (avgAccuracy >= 0.9) {
+                setReflectionMessage("The model performed very well.");
+            } else if (avgAccuracy >= 0.7) {
+                setReflectionMessage("The model performed moderately well.");
+            } else {
+                setReflectionMessage("The model struggled to learn patterns.");
+            }
           }
-
           setNodes((nds) =>
             nds.map((node) => {
-              if (node.type === "evaluationNode") {
-                return { ...node, data: { ...node.data, accuracy: result.accuracy } };
-              }
-              return node;
+              if (node.type !== "evaluationNode")
+                  return node;
+              const metrics =
+                  result.evaluations[node.id];
+              if (!metrics)
+                  return node;
+              return {...node, data: {...node.data,...metrics,},
+              };
             })
           );
-        } else {
-          setReflectionMessage("Execution finished, but no accuracy returned.");
-        }
+
+      } else {
+        setReflectionMessage("Execution finished, but no evaluation returned.");
+      }
         
         ws.close();
       };

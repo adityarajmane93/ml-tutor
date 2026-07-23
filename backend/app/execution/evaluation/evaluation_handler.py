@@ -1,5 +1,8 @@
 from sklearn.metrics import (
-    accuracy_score
+    accuracy_score,
+    f1_score, 
+    recall_score, 
+    precision_score
 )
 
 
@@ -44,13 +47,33 @@ def handle_evaluation_node(
             predictions
         )
     )
-
-    print(
-        "Accuracy:",
-        accuracy
+    precision = (
+        precision_score(
+            y_test,
+            predictions,
+            average="weighted"
+        )
+    )
+    recall = (
+        recall_score(
+            y_test,
+            predictions,
+            average="weighted"
+        )
     )
 
+    F1 = (
+        f1_score(
+            y_test,
+            predictions,
+            average="weighted"
+        )
+    )
+    print(f"Accuracy:{accuracy}, Precision: {precision}, Recall: {recall}, F1 Score: {F1}" )
+
     return {
-        "accuracy":
-        float(accuracy)
+        "accuracy":float(accuracy),
+        "precision":float(precision),
+        "recall":float(recall),
+        "F1":float(F1)
     }

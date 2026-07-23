@@ -1,72 +1,165 @@
+from collections import defaultdict
+
 from app.execution.state import create_execution_state
 from app.execution.dataset.dataset_handler import handle_dataset_node
 from app.execution.preprocessing.preprocessing_handler import handle_preprocessing_node
 from app.execution.models.model_handler import handle_model_node
 from app.execution.evaluation.evaluation_handler import handle_evaluation_node
 
-def execute_pipeline(ordered_pipeline):
-    state = create_execution_state()
+def execute_pipeline(pipeline):
 
-    nodes_to_execute = []
+    nodes = pipeline["orderedPipeline"]
+    adjacency = pipeline["adjacency"]
 
-    # 1. Safely extract the array of nodes from the payload
-    if isinstance(ordered_pipeline, list):
-        nodes_to_execute = ordered_pipeline
-    elif isinstance(ordered_pipeline, dict):
-        # Look for the nodes array inside the dictionary
-        if "nodes" in ordered_pipeline and isinstance(ordered_pipeline["nodes"], list):
-            nodes_to_execute = ordered_pipeline["nodes"]
-        else:
-            # Fallback: Search the dictionary for any array that looks like a list of nodes
-            for key, value in ordered_pipeline.items():
-                if isinstance(value, list) and len(value) > 0 and isinstance(value[0], dict) and "type" in value[0]:
-                    print(f"Found node array under key: '{key}'")
-                    nodes_to_execute = value
-                    break
-                    
-    if not nodes_to_execute:
-        print("\nERROR: Could not find a list of nodes in the payload.")
-        print("Payload received:", ordered_pipeline)
-        return {"status": "error", "message": "Invalid pipeline format: No nodes found."}
+    node_map = {
+        node["id"]: node
+        for node in nodes
+    }
 
-    # 2. Execute the nodes safely
-    for node in nodes_to_execute:
-        
-        # Skip if it's somehow not a dictionary
-        if not isinstance(node, dict):
+    # ------------------------------------------------
+    # Build reverse graph (MULTIPLE PARENTS)
+    # ------------------------------------------------
+
+    parents = defaultdict(list)
+
+    for src, children in adjacency.items():
+        for child in children:
+            parents[child].append(src)
+
+    # ------------------------------------------------
+
+    def execute_branch(model_node_id):
+
+        state = create_execution_state()
+
+        path = []
+
+        current = model_node_id
+
+        while True:
+
+            path.append(current)
+
+            if len(parents[current]) == 0:
+                break
+
+            current = parents[current][0]
+
+        path.reverse()
+
+        for node_id in path:
+
+            node = node_map[node_id]
+
+            if node["type"] == "datasetNode":
+
+                result = handle_dataset_node(
+                    node,
+                    state
+                )
+
+                if result:
+                    return None, result
+
+            elif node["type"] == "preprocessingNode":
+
+                handle_preprocessing_node(
+                    node,
+                    state
+                )
+
+            elif node["type"] == "modelNode":
+
+                handle_model_node(
+                    node,
+                    state
+                )
+
+        return state, None
+
+    # ------------------------------------------------
+
+    evaluation_nodes = [
+
+        node
+
+        for node in nodes
+
+        if node["type"] == "evaluationNode"
+
+    ]
+
+    results = {}
+
+    # ====================================================
+
+    for evaluation_node in evaluation_nodes:
+
+        incoming_models = [
+
+            parent
+
+            for parent in parents[evaluation_node["id"]]
+
+            if node_map[parent]["type"] == "modelNode"
+
+        ]
+
+        if len(incoming_models) == 0:
+
             continue
 
-        node_type = node.get("type")
+        best_metrics = None
 
-        if not node_type:
-            continue
+        best_accuracy = -1
 
-        print(f"\n=== EXECUTING {node_type} ===")
+        best_algorithm = ""
 
-        # -------------------
-        # DATASET
-        # -------------------
-        if node_type == "datasetNode":
-            result = handle_dataset_node(node, state)
-            if result:
-                return result
+        # ---------------------------------------------
 
-        # -------------------
-        # PREPROCESSING
-        # -------------------
-        elif node_type == "preprocessingNode":
-            handle_preprocessing_node(node, state)
+        for model_id in incoming_models:
 
-        # -------------------
-        # MODEL
-        # -------------------
-        elif node_type == "modelNode":
-            handle_model_node(node, state)
+            state, error = execute_branch(model_id)
 
-        # -------------------
-        # EVALUATION
-        # -------------------
-        elif node_type == "evaluationNode":
-            return handle_evaluation_node(node, state)
+            if error:
+                return error
 
-    return {"status": "pipeline incomplete"}
+            metrics = handle_evaluation_node(
+                evaluation_node,
+                state
+            )
+
+            algorithm = node_map[model_id]["data"].get(
+                "algorithm",
+                "Unknown"
+            )
+
+            print(
+                f"{algorithm} Accuracy = {metrics['accuracy']}"
+            )
+
+            if metrics["accuracy"] > best_accuracy:
+
+                best_accuracy = metrics["accuracy"]
+
+                best_metrics = metrics
+
+                best_algorithm = algorithm
+
+        # ---------------------------------------------
+
+        print(
+            f"Best Model : {best_algorithm}"
+        )
+
+        results[
+            evaluation_node["id"]
+        ] = best_metrics
+
+    print(results)
+
+    return {
+
+        "evaluations": results
+
+    }

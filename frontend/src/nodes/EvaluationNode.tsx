@@ -11,14 +11,40 @@ export default function EvaluationNode({
       e.stopPropagation(); // Prevents the click from accidentally dragging/selecting the node
       deleteElements({ nodes: [{ id }] }); // Triggers your existing deletion logic!
     };
+  
+  function Metric({
+    title,
+    value,
+  }: {
+    title: string;
+    value?: number;
+  }) {
+    return (
+      <div
+        style={{
+          justifyContent: "center",
+          fontSize: 14,
+        }}
+      >
+        <span>{title}: </span>
 
+        <span
+          style={{ fontWeight: 500
+          }}
+        >
+          {value != null ? value.toFixed(2) : "--"}
+        </span>
+      </div>
+    );
+  }
   return (
     <div
       style={{
         background: "var(--success)",
         color: "var(--surface)",
         padding: "10px 12px", // Slimmer padding
-        minWidth: "140px",    // Slimmer width
+        minWidth: "150px",    // Slimmer width
+        overflow: "hidden",
         textAlign: "center",
         fontWeight: 800,
         borderRadius: "0",
@@ -38,16 +64,36 @@ export default function EvaluationNode({
       <div style={{ 
         background: "var(--surface)", 
         color: "var(--text)", 
-        padding: "4px 8px", // Slimmer padding
+        padding: "4px 8px", 
         border: "2px solid var(--text)",
         boxShadow: "2px 2px 0px 0px var(--text)",
         fontSize: "0.85rem"
       }}>
-        Accuracy: <br/>
+        
         <span style={{ fontSize: "1rem", fontWeight: 900 }}>
-          {data?.accuracy ? (data.accuracy.toFixed(2))*100 : "--"}
+          {data?.accuracy ? `${(data.accuracy.toFixed(2))*100}%` : "--"}
         </span>
-        <span style={{ fontWeight: 'bold', fontSize: '0.95rem' }}> {data?.accuracy ? "%" : ""}</span> {/* add the % Symbol */}
+        <div
+            style={{
+              color: "#666",
+              fontSize: 13,
+            }}
+          >
+            Overall Accuracy
+          </div>
+        <hr />
+        <Metric
+          title="Precision"
+          value={data?.precision}
+        /> 
+        <Metric
+          title="Recall"
+          value={data?.recall}
+        />
+        <Metric
+          title="F1 Score"
+          value={data?.F1}
+        />
       </div>
     </div>
   );

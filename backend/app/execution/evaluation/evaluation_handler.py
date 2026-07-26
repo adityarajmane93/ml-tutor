@@ -5,6 +5,7 @@ from sklearn.metrics import (
     precision_score
 )
 
+import numpy as np
 
 def handle_evaluation_node(
     node,
@@ -33,7 +34,17 @@ def handle_evaluation_node(
             status_code=400, 
             detail="No trained model found."
         )
-        
+
+    algorithm = state.get("algorithm")
+
+    if algorithm == "oneR":
+
+        disc = state["oneR_discretizer"]
+
+        X_test = disc.transform(X_test)
+
+        X_test = np.asarray(X_test).astype(int)
+        y_test = np.asarray(y_test).astype(int)  
 
     predictions = (
         model.predict(

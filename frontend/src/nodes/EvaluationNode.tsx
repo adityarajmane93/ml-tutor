@@ -1,9 +1,13 @@
+import { useState } from "react";
 import { Handle, Position } from "reactflow";
 import { useReactFlow } from 'reactflow';
+import { logEvent } from "../services/logger";
 
 export default function EvaluationNode({
   id, data, selected,
 }: any) {
+
+  const [selectedMetric, setSelectedMetric] = useState("accuracy");
 
   const { deleteElements } = useReactFlow();
   
@@ -12,37 +16,60 @@ export default function EvaluationNode({
       deleteElements({ nodes: [{ id }] }); // Triggers your existing deletion logic!
     };
   
-  function Metric({
-    title,
-    value,
-  }: {
-    title: string;
-    value?: number;
-  }) {
-    return (
-      <div
-        style={{
-          justifyContent: "center",
-          fontSize: 14,
-        }}
-      >
-        <span>{title}: </span>
+  // function Metric({
+  //   title,
+  //   value,
+  // }: {
+  //   title: string;
+  //   value?: number;
+  // }) {
+  //   return (
+  //     <div
+  //       style={{
+  //         justifyContent: "center",
+  //         fontSize: 14,
+  //       }}
+  //     >
+  //       <span>{title}: </span>
 
-        <span
-          style={{ fontWeight: 500
-          }}
-        >
-          {value != null ? value.toFixed(2) : "--"}
-        </span>
-      </div>
-    );
-  }
+  //       <span
+  //         style={{ fontWeight: 500
+  //         }}
+  //       >
+  //         {value != null ? value.toFixed(2) : "--"}
+  //       </span>
+  //     </div>
+  //   );
+  // }
+  const metrics = {
+    accuracy: {
+      label: "Accuracy",
+      value: data?.accuracy,
+      percentage: true,
+    },
+    precision: {
+      label: "Precision",
+      value: data?.precision,
+      percentage: false,
+    },
+    recall: {
+      label: "Recall",
+      value: data?.recall,
+      percentage: false,
+    },
+    F1: {
+      label: "F1 Score",
+      value: data?.F1,
+      percentage: false,
+    },
+  };
+  const currentMetric = metrics[selectedMetric as keyof typeof metrics];
   return (
     <div
       style={{
         background: "var(--success)",
         color: "var(--surface)",
-        padding: "10px 12px", // Slimmer padding
+        padding: "8px 10px", // Slimmer padding
         minWidth: "150px",    // Slimmer width
         overflow: "hidden",
         textAlign: "center",
@@ -57,43 +84,76 @@ export default function EvaluationNode({
       <Handle type="target" position={Position.Left} id="left-target" />
       <Handle type="source" position={Position.Left} id="left-source" />
      
-      <div style={{ fontSize: "0.95rem", textTransform: "uppercase", marginBottom: "6px" }}>
+      <div style={{ fontSize: "0.95rem", textTransform: "uppercase", marginBottom: "4px" }}>
         {data.label}
       </div>
 
       <div style={{ 
         background: "var(--surface)", 
         color: "var(--text)", 
-        padding: "4px 8px", 
+        padding: "4px 6px", 
         border: "2px solid var(--text)",
         boxShadow: "2px 2px 0px 0px var(--text)",
         fontSize: "0.85rem"
       }}>
-        
-        <span style={{ fontSize: "1rem", fontWeight: 900 }}>
-          {data?.accuracy ? `${(data.accuracy.toFixed(2))*100}%` : "--"}
-        </span>
+        <select
+          className="nodrag"
+          value={selectedMetric}
+          onChange={(e) => {
+            const metric = e.target.value;
+
+            setSelectedMetric(metric);
+
+            logEvent(
+              "evaluation",
+              "metric_selected",
+              {
+                  node_id: id,
+                  metric: metric,
+                  value: data?.[metric],
+                  algorithm: data?.algorithm,
+              }
+            );
+          }}
+          style={{
+            width: "100%",
+            marginBottom: "10px",
+            padding: "4px",
+            fontWeight: 600,
+            height: "30px",
+            cursor: "pointer",
+          }}
+        >
+          <option value="accuracy">Accuracy</option>
+          <option value="precision">Precision</option>
+          <option value="recall">Recall</option>
+          <option value="F1">F1 Score</option>
+        </select>
+
         <div
-            style={{
-              color: "#666",
-              fontSize: 13,
-            }}
-          >
-            Overall Accuracy
-          </div>
-        <hr />
-        <Metric
-          title="Precision"
-          value={data?.precision}
-        /> 
-        <Metric
-          title="Recall"
-          value={data?.recall}
-        />
-        <Metric
-          title="F1 Score"
-          value={data?.F1}
-        />
+          style={{
+            fontSize: "1.5rem",
+            fontWeight: 900,
+            color: "var(--success)",
+          }}
+        >
+          {currentMetric.value != null
+            ? currentMetric.percentage
+              ? `${Math.round(currentMetric.value * 100)}%`
+              : currentMetric.value.toFixed(2)
+            : "--"}
+        </div>
+
+        <div
+          style={{
+            fontSize: 11,
+            fontWeight: 600,
+            color: "#666",
+            marginTop: 4,
+          }}
+        >
+          {currentMetric.label}
+        </div>
       </div>
     </div>
   );

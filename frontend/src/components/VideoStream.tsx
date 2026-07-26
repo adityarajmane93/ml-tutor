@@ -17,6 +17,7 @@ export default function VideoStream() {
   const rppgCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const latestFaceRef = useRef<Detection | null>(null);
   const [cameraError, setCameraError] = useState(false);
+  const ENABLE_BACKEND = false;
   
 
   useEffect(() => {
@@ -82,20 +83,21 @@ export default function VideoStream() {
 
       rppgWsRef.current = ws;
     };
+  if (ENABLE_BACKEND) {
+    useEffect(() => {
+      connectRppgSocket();
 
-  useEffect(() => {
-    connectRppgSocket();
-
-    return () => {
-      shouldReconnectRppgRef.current = false;
-      if (reconnectTimerRef.current) {
-        window.clearTimeout(reconnectTimerRef.current);
-      }
-      if (rppgWsRef.current) {
-        rppgWsRef.current.close();
-      }
-    };
-  }, []);
+      return () => {
+        shouldReconnectRppgRef.current = false;
+        if (reconnectTimerRef.current) {
+          window.clearTimeout(reconnectTimerRef.current);
+        }
+        if (rppgWsRef.current) {
+          rppgWsRef.current.close();
+        }
+      };
+    }, []);
+  }
 
   // AUTO-START CAMERA when the detector is ready
   useEffect(() => {
@@ -109,9 +111,10 @@ export default function VideoStream() {
       const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
       shouldReconnectRppgRef.current = true;
       setCameraError(false);
-
-      if (!rppgWsRef.current || rppgWsRef.current.readyState === WebSocket.CLOSED || rppgWsRef.current.readyState === WebSocket.CLOSING) {
-        connectRppgSocket();
+      if(ENABLE_BACKEND){
+        if (!rppgWsRef.current || rppgWsRef.current.readyState === WebSocket.CLOSED || rppgWsRef.current.readyState === WebSocket.CLOSING) {
+          connectRppgSocket();
+        }
       }
 
       const track = stream.getVideoTracks()[0];
@@ -230,11 +233,13 @@ const processVideoLoop = async () => {
           formData.append("session_id", sessionIdRef.current);
 
           try {
-            fetch(`${import.meta.env.VITE_API_URL}/predict_valenceArousal`, {
-              method: "POST",
-              body: formData,
-            });
-            devLog("Face detected, sent to backend.");
+            if (ENABLE_BACKEND){
+              fetch(`${import.meta.env.VITE_API_URL}/predict_valenceArousal`, {
+                method: "POST",
+                body: formData,
+              });
+              devLog("Face detected, sent to backend.");
+            }
           } catch (error) {
             console.error("Failed to send engaged face to backend", error);
           }
@@ -303,19 +308,21 @@ const processVideoLoop = async () => {
           b: pixel[2],
         };
 
-        if (
-          rppgWsRef.current &&
-          rppgWsRef.current.readyState === WebSocket.OPEN
-        ) {
-          rppgWsRef.current.send(
-            JSON.stringify({
-              session_id: sessionIdRef.current,
-              timestamp: Date.now() / 1000,
-              r: rgb.r,
-              g: rgb.g,
-              b: rgb.b,
-            })
-          );
+        if (ENABLE_BACKEND) {
+          if (
+            rppgWsRef.current &&
+            rppgWsRef.current.readyState === WebSocket.OPEN
+          ) {
+            rppgWsRef.current.send(
+              JSON.stringify({
+                session_id: sessionIdRef.current,
+                timestamp: Date.now() / 1000,
+                r: rgb.r,
+                g: rgb.g,
+                b: rgb.b,
+              })
+            );
+          }
         }
       }
     }

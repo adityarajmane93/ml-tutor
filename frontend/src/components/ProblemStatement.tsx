@@ -20,7 +20,7 @@ export default function ProblemStatement({ onComplete }: { onComplete: () => voi
             Mission Briefing
           </h1>
           <p style={{ margin: '10px 0 0 0', fontSize: '1.2rem', fontWeight: 'bold', color: '#4b5563' }}>
-            Your Role: Chief Data Scientist @ City Central Hospital
+            Your Role: Class Teacher
           </p>
         </div>
 
@@ -29,36 +29,55 @@ export default function ProblemStatement({ onComplete }: { onComplete: () => voi
           <h2 style={{ marginTop: 0, display: 'flex', alignItems: 'center', gap: '10px' }}>
             The Crisis
           </h2>
-          <p style={{ fontSize: '1.1rem', lineHeight: '1.6', margin: 0,textAlign: 'left' }}>
-            City Central Hospital is overflowing with patients. The doctors are overwhelmed and cannot examine everyone immediately. They need an Artificial Intelligence assistant that can act as a triage nurse. 
-            <br/><br/>
-            Your job is to build a Machine Learning pipeline that can instantly predict a patient's <strong>Severity Condition</strong> the moment they walk through the door, so doctors know who needs urgent care first!
-          </p>
+          <p style={{ fontSize: '1.1rem', lineHeight: '1.6', margin: 0, textAlign: 'left' }}>
+  Your class has over 200 students, and final examinations are just around the corner. Unfortunately, it is impossible to personally monitor every student's progress and identify who might be struggling.
+  <br /><br />
+  Your task is to build a Machine Learning model that can predict whether a student is likely to <strong>Pass</strong> or <strong>Fail</strong>. This will help you identify at-risk students early and provide them with the support they need before the final examination.
+</p>
         </div>
 
         {/* The Dataset Introduction */}
         <div style={{ backgroundColor: '#eff6ff', border: '3px solid #3b82f6', borderRadius: '8px', padding: '24px', boxShadow: '4px 4px 0px #3b82f6' }}>
           <h2 style={{ marginTop: 0, color: '#1d4ed8', display: 'flex', alignItems: 'left', gap: '10px' }}>
-            The "health_data" Dataset
+            The "student_data" Dataset
           </h2>
-          <p style={{ fontSize: '1.1rem', lineHeight: '1.6', marginBottom: '16px',textAlign: 'left' }}>
-            To teach your AI, the nurses have provided you with a historical dataset of past patients. The machine will learn by looking at these <strong>Features</strong> (clues):
-          </p>
+          <p style={{ fontSize: '1.1rem', lineHeight: '1.6', marginBottom: '16px', textAlign: 'left' }}>
+  You have access to records from students in previous years. Your AI model will learn from the following <strong>Features</strong>:
+</p>
           
-          <ul style={{ fontSize: '1.1rem', lineHeight: '1.6', margin: 0, paddingLeft: '24px', color: '#1e3a8a',textAlign: 'left' }}>
-            <li><strong>Temperature:</strong> Patient's body heat.</li>
-            <li><strong>Heart Rate:</strong> Beats per minute.</li>
-            <li><strong>Fatigue Score:</strong> How tired they feel on a scale of 1 to 5.</li>
-          </ul>
+          <ul
+  style={{
+    fontSize: '1.1rem',
+    lineHeight: '1.6',
+    margin: 0,
+    paddingLeft: '24px',
+    color: '#1e3a8a',
+    textAlign: 'left'
+  }}
+>
+  <li><strong>Attendance:</strong> Percentage of classes attended.</li>
+  <li><strong>Midsem Score:</strong> Marks obtained in the mid-semester examination.</li>
+  <li><strong>Class Participation:</strong> Level of participation during lectures.</li>
+  <li><strong>Assignment Scores</strong> Overall performance in assignments.</li>
+  <li><strong>Result</strong> Indicates whether the student passed or failed the course.</li>
+</ul>
 
-          <div style={{ marginTop: '20px', backgroundColor: '#dbeafe', padding: '16px', borderRadius: '6px', borderLeft: '4px solid #2563eb' }}>
-            <strong>⚠️ Data Warning:</strong> The nurses were rushed, and sometimes they forgot to ask the patients for their Fatigue Score or record their Temperature, Heart_Beat!. You will need to use a <strong>Preprocessing Node</strong> to fix this messy data before the AI can learn from it!
-          </div>
+          <div
+  style={{
+    marginTop: '20px',
+    backgroundColor: '#dbeafe',
+    padding: '16px',
+    borderRadius: '6px',
+    borderLeft: '4px solid #2563eb'
+  }}
+>
+  <strong>⚠️ Data Warning:</strong> Some student records are incomplete because attendance, assignment scores, or participation were not recorded. Use a <strong>Preprocessing Node</strong> to clean the missing values before training your Machine Learning model.
+</div>
           {/* DATASET DOWNLOAD BUTTON */}
           <div style={{ marginTop: '24px' }}>
             <a 
-              href="/health_data.csv" 
-              download="health_data.csv"
+              href="/student_data.csv"
+              download="student_data.csv"
               className="neo-btn"
               style={{ 
                 display: 'inline-flex', 

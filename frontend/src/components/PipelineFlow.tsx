@@ -69,6 +69,9 @@ import { logPipelineSnapshot }
 import { createNodeTypes }
   from "../nodes/customNodeTypes";
 
+import FeatureSelectionPanel 
+  from "./FeatureSelectionPanel";
+
 export default function PipelineFlow() {
   const [
     nodes,
@@ -92,8 +95,16 @@ export default function PipelineFlow() {
 
   const [showLearnModal, setShowLearnModal] = useState(false);
   const [learnModalType, setLearnModalType] = useState("");
-  const [learnModalOpenTime, setLearnModalOpenTime] = useState<number | null>(null); // NEW STATE
+  const [learnModalOpenTime, setLearnModalOpenTime] = useState<number | null>(null);
+  const [featureNodeId,setFeatureNodeId] = useState<string | null>(null);
   
+  const openFeatureSelection =
+    (id:string)=>{
+
+        setFeatureNodeId(id);
+
+    };
+
   const handleSelectionChange = useCallback(({ nodes, edges }: { nodes: Node[]; edges: Edge[] }) => {
     setSelectedNodes(nodes);
     setSelectedEdges(edges);
@@ -273,7 +284,8 @@ export default function PipelineFlow() {
     useMemo(
       () =>
         createNodeTypes(
-          updateNodeData
+          updateNodeData,
+          openFeatureSelection
         ),
 
       [updateNodeData]
@@ -390,9 +402,83 @@ export default function PipelineFlow() {
     activeSelectionColor = 'var(--flow)'; // Purple for edges
   }
 
+  const datasetNode =
+    nodes.find(
+        n=>n.type==="datasetNode"
+    );
+
   return (
     <div style={{ display: "flex", flexDirection: "row", gap: "24px", paddingBottom: "40px", height: "70vh", minHeight: "600px",minWidth: "1300px"  }}>
+      
+      {
+        featureNodeId && (
 
+        <div
+        style={{
+        position:"fixed",
+        top:0,
+        left:0,
+        right:0,
+        bottom:0,
+        background:"rgba(0,0,0,.45)",
+        display:"flex",
+        justifyContent:"center",
+        alignItems:"center",
+        zIndex:5000
+        }}
+        >
+
+        <div
+        style={{
+        width:"520px",
+        maxHeight:"80vh",
+        overflow:"auto",
+        background:"white",
+        border:"4px solid var(--text)",
+        boxShadow:"var(--hard-shadow)",
+        padding:"20px"
+        }}
+        >
+
+        <FeatureSelectionPanel
+        datasetNode={
+        nodes.find(
+        n=>n.id===featureNodeId
+        )
+        }
+        updateNodeData={
+        updateNodeData
+        }
+        />
+
+        <div
+        style={{
+        display:"flex",
+        justifyContent:"flex-end",
+        marginTop:"20px"
+        }}
+        >
+
+        <button
+        style={{
+        padding:"8px 20px",
+        fontWeight:800,
+        cursor:"pointer"
+        }}
+        onClick={()=>
+        setFeatureNodeId(null)
+        }
+        >
+        Done
+        </button>
+
+        </div>
+
+        </div>
+
+        </div>
+
+        )}
       <VideoStream />
       
       {showLearnModal && (
@@ -500,7 +586,10 @@ export default function PipelineFlow() {
           }}>
             <SAMMbar/>
           </div>
-
+        {/* <FeatureSelectionPanel
+            datasetNode={datasetNode}
+            updateNodeData={updateNodeData}
+          /> */}
         {/* BOTTOM BOX: Reflection Panel */}
         <div
           style={{

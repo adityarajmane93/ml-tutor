@@ -7,6 +7,7 @@ export default function DatasetNode({
   data,
   selected,
   updateNodeData,
+  openFeatureSelection,
 }: any) {
 
   const { deleteElements } = useReactFlow();
@@ -23,9 +24,17 @@ export default function DatasetNode({
     Papa.parse(file, {
       header: true,
       complete: (results) => {
-        updateNodeData(id, {
-          dataset: results.data,
-          filename: file.name,
+       const columns = results.meta.fields ?? [];
+
+        updateNodeData(id,{
+            dataset: results.data,
+            filename:file.name,
+
+            columns,
+
+            selectedFeatures: columns.slice(0,-1),
+
+            targetColumn: columns[columns.length-1]
         });
       },
     });
@@ -91,6 +100,21 @@ export default function DatasetNode({
           style={{ ...inputStyle, width: "45px" }}
         />
         <span style={{ fontWeight: 'bold', fontSize: '0.95rem' }}>%</span>
+      </div>
+
+      <div style={{ marginTop: "12px" }}>
+        <button
+          className="nodrag"
+          onClick={() => openFeatureSelection(id)}
+          style={{
+            ...inputStyle,
+            width: "150px",
+            fontWeight: 800,
+            cursor: "pointer",
+          }}
+        >
+          ⚙ Features
+        </button>
       </div>
 
       <Handle type="target" position={Position.Right} id="right-target" />

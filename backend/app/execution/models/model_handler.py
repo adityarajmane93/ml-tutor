@@ -10,15 +10,9 @@ from sklearn.linear_model import (
     LogisticRegression
 )
 
-from mlxtend.classifier import ( 
-    OneRClassifier
+from sklearn.dummy import (
+    DummyClassifier
 )
-
-from sklearn.preprocessing import (
-    KBinsDiscretizer
-)
-
-import numpy as np
 
 def handle_model_node(
     node,
@@ -116,29 +110,14 @@ def handle_model_node(
         )
 
     # -------------------
-    # 1R
+    # 0-R
     # -------------------
 
-    elif algorithm == "oneR":
+    elif algorithm == "zeroR":
 
-        disc = KBinsDiscretizer(
-            n_bins=5,
-            encode="ordinal",
-            strategy="uniform"
+        model = DummyClassifier(
+            strategy="most_frequent"
         )
-
-        X_discrete  = disc.fit_transform(X_train)
-
-        X_train = np.asarray(X_discrete).astype(int)
-        y_train = np.asarray(y_train).astype(int)
-
-        model = (
-            OneRClassifier()
-        )
-
-         # Save for evaluation
-        state["oneR_discretizer"] = disc
-        state["algorithm"] = "oneR"
 
 
     model.fit(

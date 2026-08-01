@@ -59,9 +59,21 @@ def handle_dataset_node(
     # FEATURES / TARGET
     # -------------------
 
-    X = df.iloc[:, :-1]
+    # X = df.iloc[:, :-1]
 
-    y = df.iloc[:, -1]
+    # y = df.iloc[:, -1]
+    selected_features = node["data"].get("selectedFeatures")
+    target_column = node["data"].get("targetColumn")
+
+    if selected_features and target_column:
+
+        X = df[selected_features]
+        y = df[target_column]
+
+    else:
+
+        X = df.iloc[:, :-1]
+        y = df.iloc[:, -1]
 
     print(
         "\nDataset Loaded:"

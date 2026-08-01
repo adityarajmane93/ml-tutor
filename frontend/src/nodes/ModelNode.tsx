@@ -68,7 +68,7 @@ export default function ModelNode({
           <option value="knn">KNN</option>
           <option value="logisticRegression">Logistic Regression</option>
           <option value="decisionTree">Decision Tree</option>
-          <option value="oneR">1-R</option>
+          <option value="zeroR">0-R</option>
         </select>
       </div>
 

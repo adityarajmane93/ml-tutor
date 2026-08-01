@@ -16,31 +16,6 @@ export default function EvaluationNode({
       deleteElements({ nodes: [{ id }] }); // Triggers your existing deletion logic!
     };
   
-  // function Metric({
-  //   title,
-  //   value,
-  // }: {
-  //   title: string;
-  //   value?: number;
-  // }) {
-  //   return (
-  //     <div
-  //       style={{
-  //         justifyContent: "center",
-  //         fontSize: 14,
-  //       }}
-  //     >
-  //       <span>{title}: </span>
-
-  //       <span
-  //         style={{ fontWeight: 500
-  //         }}
-  //       >
-  //         {value != null ? value.toFixed(2) : "--"}
-  //       </span>
-  //     </div>
-  //   );
-  // }
   const metrics = {
     accuracy: {
       label: "Accuracy",

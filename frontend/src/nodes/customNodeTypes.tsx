@@ -11,7 +11,8 @@ import EvaluationNode
 from "./EvaluationNode";
 
 export function createNodeTypes(
-  updateNodeData: any
+  updateNodeData: any,
+  openFeatureSelection: any
 ) {
 
   return {
@@ -23,6 +24,9 @@ export function createNodeTypes(
         {...props}
         updateNodeData={
           updateNodeData
+        }
+        openFeatureSelection={
+          openFeatureSelection
         }
       />
     ),

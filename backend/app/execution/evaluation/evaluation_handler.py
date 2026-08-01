@@ -35,16 +35,16 @@ def handle_evaluation_node(
             detail="No trained model found."
         )
 
-    algorithm = state.get("algorithm")
+    # algorithm = state.get("algorithm")
 
-    if algorithm == "oneR":
+    # if algorithm == "oneR":
 
-        disc = state["oneR_discretizer"]
+    #     disc = state["oneR_discretizer"]
 
-        X_test = disc.transform(X_test)
+    #     X_test = disc.transform(X_test)
 
-        X_test = np.asarray(X_test).astype(int)
-        y_test = np.asarray(y_test).astype(int)  
+    #     X_test = np.asarray(X_test).astype(int)
+    #     y_test = np.asarray(y_test).astype(int)  
 
     predictions = (
         model.predict(

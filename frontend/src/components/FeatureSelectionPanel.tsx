@@ -20,8 +20,6 @@ export default function FeatureSelectionPanel({
     return (
       <div
         style={{
-        //   border: "4px solid var(--text)",
-        //   boxShadow: "var(--hard-shadow)",
           background: "var(--surface)",
           padding: "16px",
           minHeight: "180px",

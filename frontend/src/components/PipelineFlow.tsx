@@ -402,11 +402,6 @@ export default function PipelineFlow() {
     activeSelectionColor = 'var(--flow)'; // Purple for edges
   }
 
-  const datasetNode =
-    nodes.find(
-        n=>n.type==="datasetNode"
-    );
-
   return (
     <div style={{ display: "flex", flexDirection: "row", gap: "24px", paddingBottom: "40px", height: "70vh", minHeight: "600px",minWidth: "1300px"  }}>
       
@@ -586,10 +581,7 @@ export default function PipelineFlow() {
           }}>
             <SAMMbar/>
           </div>
-        {/* <FeatureSelectionPanel
-            datasetNode={datasetNode}
-            updateNodeData={updateNodeData}
-          /> */}
+
         {/* BOTTOM BOX: Reflection Panel */}
         <div
           style={{

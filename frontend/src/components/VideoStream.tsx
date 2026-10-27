@@ -17,7 +17,7 @@ export default function VideoStream() {
   const rppgCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const latestFaceRef = useRef<Detection | null>(null);
   const [cameraError, setCameraError] = useState(false);
-  const ENABLE_BACKEND = false;
+  const ENABLE_BACKEND = true;
   
 
   useEffect(() => {

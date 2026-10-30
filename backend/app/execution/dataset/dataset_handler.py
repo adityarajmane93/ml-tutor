@@ -32,30 +32,6 @@ def handle_dataset_node(
     )
 
     # -------------------
-    # CONVERT NUMERIC
-    # -------------------
-
-    df = df.apply(
-
-        lambda col:
-
-        pd.to_numeric(
-            col,
-            errors="coerce"
-        )
-
-        if (
-            col.name !=
-            df.columns[-1]
-        )
-
-        else col
-    )
-
-    print("\nDATAFRAME:")
-    print(df.head())
-
-    # -------------------
     # FEATURES / TARGET
     # -------------------
 
@@ -67,13 +43,30 @@ def handle_dataset_node(
 
     if selected_features and target_column:
 
-        X = df[selected_features]
-        y = df[target_column]
+        X = df[selected_features].copy()
+        y = df[target_column].copy()
 
     else:
 
-        X = df.iloc[:, :-1]
-        y = df.iloc[:, -1]
+        X = df.iloc[:, :-1].copy()
+        y = df.iloc[:, -1].copy()
+
+    # Convert genuinely numeric columns without destroying categorical values.
+    # Categorical predictors are encoded after the split so the test set cannot
+    # introduce information into the training columns.
+    numeric_columns = []
+    for column in X.columns:
+        converted = pd.to_numeric(X[column], errors="coerce")
+        if converted.notna().sum() == X[column].notna().sum():
+            X[column] = converted
+            numeric_columns.append(column)
+
+    categorical_columns = [
+        column for column in X.columns if column not in numeric_columns
+    ]
+
+    print("\nDATAFRAME:")
+    print(df.head())
 
     print(
         "\nDataset Loaded:"
@@ -104,6 +97,14 @@ def handle_dataset_node(
 
     if testSize is None:
         testSize=30
+
+    testSize = int(testSize)
+    if testSize <= 0 or testSize >= 100:
+        raise HTTPException(
+            status_code=400,
+            detail="Test size must be between 1 and 99 percent."
+        )
+
     (
         X_train,
         X_test,
@@ -112,9 +113,36 @@ def handle_dataset_node(
     ) = train_test_split(
         X,
         y,
-        test_size=int(testSize)/100,
+        test_size=testSize/100,
         random_state=42
     )
+
+    if categorical_columns:
+        X_train = pd.get_dummies(
+            X_train,
+            columns=categorical_columns,
+            dummy_na=True,
+            dtype=float
+        )
+        X_test = pd.get_dummies(
+            X_test,
+            columns=categorical_columns,
+            dummy_na=True,
+            dtype=float
+        )
+        X_train, X_test = X_train.align(
+            X_test,
+            join="left",
+            axis=1,
+            fill_value=0
+        )
+
+    X_encoded = pd.get_dummies(
+        X,
+        columns=categorical_columns,
+        dummy_na=True,
+        dtype=float
+    ).reindex(columns=X_train.columns, fill_value=0)
 
     print(
         "\nTrain/Test Split Complete"
@@ -134,7 +162,7 @@ def handle_dataset_node(
     # SAVE STATE
     # -------------------
 
-    state["X"] = X
+    state["X"] = X_encoded
     state["y"] = y
 
     state["X_train"] = X_train

@@ -23,8 +23,21 @@ export default function DatasetNode({
 
     Papa.parse(file, {
       header: true,
+      skipEmptyLines: true,
       complete: (results) => {
        const columns = results.meta.fields ?? [];
+       let targetColumn = columns[columns.length - 1];
+
+       try {
+         const savedMission = JSON.parse(
+           sessionStorage.getItem("ml-tutor-selected-dataset") ?? "null"
+         );
+         if (savedMission?.target && columns.includes(savedMission.target)) {
+           targetColumn = savedMission.target;
+         }
+       } catch {
+         // A malformed saved mission should not prevent a learner from uploading data.
+       }
 
         updateNodeData(id,{
             dataset: results.data,
@@ -32,9 +45,9 @@ export default function DatasetNode({
 
             columns,
 
-            selectedFeatures: columns.slice(0,-1),
+            selectedFeatures: columns.filter((column) => column !== targetColumn),
 
-            targetColumn: columns[columns.length-1]
+            targetColumn
         });
       },
     });
@@ -91,7 +104,7 @@ export default function DatasetNode({
           className="nodrag"
           type="number" 
           min="10" 
-          max="100" 
+          max="90"
           step="1"
           value={data.testSize ?? ""}
           onChange={(e) => {

@@ -65,6 +65,7 @@ import { logEvent }
 
 import { logPipelineSnapshot }
   from "../services/pipelineSnapshot";
+import { getStudySessionContext } from "../store/sessionStore";
 
 import { createNodeTypes }
   from "../nodes/customNodeTypes";
@@ -294,7 +295,15 @@ export default function PipelineFlow() {
   async function runPipeline() {
     try {
       // Serialize layout
-      const serialized = serializePipeline(nodes, edges);
+      const serialized = {
+        ...serializePipeline(nodes, edges),
+        study_context: {
+          study_id: getStudySessionContext().studyId,
+          participant_id: getStudySessionContext().participantId,
+          session_id: getStudySessionContext().sessionId,
+          client_timestamp: new Date().toISOString(),
+        },
+      };
       devLog("SERIALIZED:", serialized);
 
       // Open the WebSocket connection
@@ -336,13 +345,18 @@ export default function PipelineFlow() {
           const evaluations = Object.values(result.evaluations);
           if (evaluations.length > 0) {
             const avgAccuracy = evaluations.reduce((sum: number, e: any) => sum + e.accuracy,0) / evaluations.length;
+            let message = "The model struggled to learn patterns.";
             if (avgAccuracy >= 0.9) {
-                setReflectionMessage("The model performed very well.");
+                message = "The model performed very well.";
             } else if (avgAccuracy >= 0.7) {
-                setReflectionMessage("The model performed moderately well.");
-            } else {
-                setReflectionMessage("The model struggled to learn patterns.");
+                message = "The model performed moderately well.";
             }
+
+            const sampling = result.execution?.sampling?.[0];
+            if (sampling) {
+              message += ` Used a representative ${sampling.usedRows.toLocaleString()}-row sample of ${sampling.sourceRows.toLocaleString()} rows for a faster interactive run.`;
+            }
+            setReflectionMessage(message);
           }
           setNodes((nds) =>
             nds.map((node) => {

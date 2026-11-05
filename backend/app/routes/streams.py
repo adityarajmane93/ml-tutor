@@ -1,6 +1,7 @@
 import json
 import time
 import asyncio
+from datetime import datetime, timezone
 import numpy as np
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 from sqlalchemy.orm import Session
@@ -38,8 +39,10 @@ async def rppg_websocket(websocket: WebSocket):
             try:
                 raw_data = await websocket.receive_text()
                 data = json.loads(raw_data)
-                client_timestamp = str(data.get("timestamp", time.time()))
                 session_id = data.get("session_id")
+                study_id = data.get("study_id")
+                participant_id = data.get("participant_id")
+                client_timestamp = str(data.get("client_timestamp", data.get("timestamp", time.time())))
                 r_val = data.get("r")
                 g_val = data.get("g")
                 b_val = data.get("b")
@@ -84,7 +87,11 @@ async def rppg_websocket(websocket: WebSocket):
                                 db_entry = RppgModel(
                                     session_id=session_id,
                                     timestamp=str(data.get("timestamp", now)),
-                                    bpm=float(round(bpm, 1))
+                                    bpm=float(round(bpm, 1)),
+                                    study_id=study_id,
+                                    participant_id=participant_id,
+                                    client_timestamp=str(client_timestamp),
+                                    server_timestamp=datetime.now(timezone.utc).isoformat(),
                                 )
                                 db.add(db_entry)
                                 db.commit()

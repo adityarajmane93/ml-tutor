@@ -1,6 +1,6 @@
 import  { useEffect, useRef, useState } from "react";
 import { FaceDetector, FilesetResolver, type Detection } from "@mediapipe/tasks-vision";
-import { useSessionStore } from '../store/sessionStore';
+import { getStudySessionContext, useSessionStore } from '../store/sessionStore';
 import { devLog }
   from "../flow/logger"
 
@@ -231,6 +231,10 @@ const processVideoLoop = async () => {
           const timestamp = Math.floor(Date.now() / 1000); 
           formData.append("file", blob, `${timestamp}_face.jpg`); 
           formData.append("session_id", sessionIdRef.current);
+          const context = getStudySessionContext();
+          formData.append("study_id", context.studyId);
+          formData.append("participant_id", context.participantId);
+          formData.append("client_timestamp", new Date().toISOString());
 
           try {
             if (ENABLE_BACKEND){
@@ -316,7 +320,10 @@ const processVideoLoop = async () => {
             rppgWsRef.current.send(
               JSON.stringify({
                 session_id: sessionIdRef.current,
+                study_id: getStudySessionContext().studyId,
+                participant_id: getStudySessionContext().participantId,
                 timestamp: Date.now() / 1000,
+                client_timestamp: new Date().toISOString(),
                 r: rgb.r,
                 g: rgb.g,
                 b: rgb.b,

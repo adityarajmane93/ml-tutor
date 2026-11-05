@@ -43,6 +43,9 @@ class SAMMPayload(BaseModel):
     timestamp: str
     timeTakenToAnswer: int
     data: SAMMData
+    study_id: Optional[str] = Field(default=None, max_length=128)
+    participant_id: Optional[str] = Field(default=None, max_length=128)
+    client_timestamp: Optional[str] = None
 
 
 class Page1Data(BaseModel):

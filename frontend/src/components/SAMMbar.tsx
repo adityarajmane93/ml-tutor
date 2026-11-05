@@ -1,5 +1,5 @@
 import { useState, useEffect, type MouseEvent } from 'react';
-import { useSessionStore } from '../store/sessionStore';
+import { getStudySessionContext, useSessionStore } from '../store/sessionStore';
 
 import { devLog }
   from "../flow/logger"
@@ -140,7 +140,10 @@ export default function SAMMTracker({  }: { } = {}) {
   const submitFeedback = async () => {
     const payload = {
       session_id: sessionId,
+      study_id: getStudySessionContext().studyId,
+      participant_id: getStudySessionContext().participantId,
       timestamp: Math.floor(Date.now() / 1000).toString(),
+      client_timestamp: new Date().toISOString(),
       timeTakenToAnswer: timePassed,
       data: responses
     };

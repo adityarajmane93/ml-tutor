@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, useNavigate } from 'react-router-dom';
 
 // import logo from '/images/logo.png'; 
@@ -12,9 +12,15 @@ import LiveAnalyticsDashboard from './components/AnalyticsDashboard';
 import StartupDashboard from './components/StartupDashboard'; 
 import ProblemStatement from './components/ProblemStatement'; 
 import "./App.css";
+import { useSessionStore } from './store/sessionStore';
 
 function AppContent() {
   const navigate = useNavigate();
+  const startSession = useSessionStore((state) => state.startSession);
+
+  useEffect(() => {
+    void startSession();
+  }, [startSession]);
 
   // State to track dashboard completion!
   const [hasConsented, setHasConsented] =  useState(true); //useState(false);

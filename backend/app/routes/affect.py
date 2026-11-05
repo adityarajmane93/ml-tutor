@@ -1,3 +1,6 @@
+from typing import Optional
+from datetime import datetime, timezone
+
 from fastapi import APIRouter, UploadFile, File, Form
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
@@ -11,7 +14,13 @@ from app.services.websocket_manager import manager
 router = APIRouter()
 
 @router.post("/predict_valenceArousal") 
-async def predict_valenceArousal(file: UploadFile = File(...), session_id: str = Form(...)):
+async def predict_valenceArousal(
+    file: UploadFile = File(...),
+    session_id: str = Form(...),
+    study_id: Optional[str] = Form(None),
+    participant_id: Optional[str] = Form(None),
+    client_timestamp: Optional[str] = Form(None),
+):
     full_filename = file.filename 
     timestamp = full_filename.split('_')[0]
     
@@ -28,7 +37,11 @@ async def predict_valenceArousal(file: UploadFile = File(...), session_id: str =
                     session_id=session_id,
                     timestamp=timestamp, 
                     valence=valence, 
-                    arousal=arousal
+                    arousal=arousal,
+                    study_id=study_id,
+                    participant_id=participant_id,
+                    client_timestamp=client_timestamp or timestamp,
+                    server_timestamp=datetime.now(timezone.utc).isoformat(),
                 )
                 db.add(db_affect)
                 db.commit()

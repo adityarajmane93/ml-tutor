@@ -14,7 +14,7 @@ Use one Railway project and a `staging` environment in the Amsterdam region. Cre
 
 Do not set a service root directory such as `services/ml_execution`: its Dockerfile intentionally copies `backend/app` from the repository-root build context. The Core Dockerfile was changed to use that same root context. Railway supports a custom Dockerfile path through `RAILWAY_DOCKERFILE_PATH`; its root directory defaults to `/` and applies to the build context. See [Railway Dockerfiles](https://docs.railway.com/builds/dockerfiles) and [build configuration](https://docs.railway.com/builds/build-configuration).
 
-The Dockerfiles bind Uvicorn to `0.0.0.0` and Railway's supplied `PORT`, with `8080` only as the local fallback. Their container health checks use the same runtime port. Do not manually set `PORT` in Railway.
+The Dockerfiles bind Uvicorn to `0.0.0.0` and Railway's supplied `PORT`, with `8080` only as the local fallback. They intentionally contain no Dockerfile `HEALTHCHECK`; configure Railway's deployment healthcheck path as `/health`. Do not manually set `PORT` in Railway.
 
 ## Service responsibilities and network flow
 

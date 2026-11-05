@@ -19,15 +19,15 @@ class PhaseThreeDeploymentTests(unittest.TestCase):
         self.assertIn("COPY backend/requirements-affect.txt", affect)
         self.assertIn("build: {context: ., dockerfile: backend/Dockerfile}", compose)
 
-    def test_all_service_health_checks_follow_the_runtime_port(self):
+    def test_dockerfiles_leave_deployment_health_checks_to_railway(self):
         for dockerfile in (
             ROOT / "backend/Dockerfile",
             ROOT / "services/ml_execution/Dockerfile",
             ROOT / "services/affect_inference/Dockerfile",
         ):
             content = dockerfile.read_text()
-            self.assertIn("os.getenv('PORT', '8080')", content)
-            self.assertIn("/health", content)
+            self.assertNotIn("HEALTHCHECK", content)
+            self.assertIn("--port ${PORT:-8080}", content)
 
     def test_core_dependency_list_excludes_ml_runtime(self):
         requirements = (ROOT / "backend/requirements-core.txt").read_text().lower()

@@ -15,6 +15,11 @@ class EventModel(Base):
     source = Column(String)
     schema_version = Column(String)
     event_metadata = Column(JSON)
+    study_id = Column(String, index=True, nullable=True)
+    participant_id = Column(String, index=True, nullable=True)
+    client_timestamp = Column(String, nullable=True)
+    server_timestamp = Column(String, index=True, nullable=True)
+    client_sequence = Column(Integer, nullable=True)
 
 class SAMMModel(Base):
     __tablename__ = "samm_records"
@@ -28,6 +33,10 @@ class SAMMModel(Base):
     valence = Column(Float)
     arousal = Column(Float)
     dominance = Column(Float)
+    study_id = Column(String, index=True, nullable=True)
+    participant_id = Column(String, index=True, nullable=True)
+    client_timestamp = Column(String, nullable=True)
+    server_timestamp = Column(String, nullable=True)
 
 class AffectModel(Base):
     __tablename__ = "affect_logs"
@@ -37,6 +46,10 @@ class AffectModel(Base):
     timestamp = Column(String, index=True)
     valence = Column(Float)
     arousal = Column(Float)
+    study_id = Column(String, index=True, nullable=True)
+    participant_id = Column(String, index=True, nullable=True)
+    client_timestamp = Column(String, nullable=True)
+    server_timestamp = Column(String, nullable=True)
     
     
 class RppgModel(Base):
@@ -45,6 +58,38 @@ class RppgModel(Base):
     session_id = Column(String, index=True)
     timestamp = Column(String) 
     bpm = Column(Float)
+    study_id = Column(String, index=True, nullable=True)
+    participant_id = Column(String, index=True, nullable=True)
+    client_timestamp = Column(String, nullable=True)
+    server_timestamp = Column(String, nullable=True)
+
+
+class StudySessionModel(Base):
+    __tablename__ = "study_sessions"
+
+    session_id = Column(String, primary_key=True)
+    study_id = Column(String, index=True, nullable=False)
+    participant_id = Column(String, index=True, nullable=False)
+    client_started_at = Column(String, nullable=True)
+    server_started_at = Column(String, index=True, nullable=False)
+    client_ended_at = Column(String, nullable=True)
+    server_ended_at = Column(String, index=True, nullable=True)
+
+
+class PipelineExecutionModel(Base):
+    __tablename__ = "pipeline_executions"
+
+    execution_id = Column(String, primary_key=True)
+    session_id = Column(String, index=True, nullable=False)
+    study_id = Column(String, index=True, nullable=True)
+    participant_id = Column(String, index=True, nullable=True)
+    client_started_at = Column(String, nullable=True)
+    server_started_at = Column(String, index=True, nullable=False)
+    server_completed_at = Column(String, index=True, nullable=True)
+    status = Column(String, nullable=False)
+    request_metadata = Column(JSON, nullable=True)
+    result_metadata = Column(JSON, nullable=True)
+    error_message = Column(String, nullable=True)
 
 class NoteModel(Base):
     __tablename__ = "notes"

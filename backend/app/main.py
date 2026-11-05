@@ -20,10 +20,7 @@ from app.db.db import SessionLocal, engine, Base
 
 # Import the new routers!
 from app.routes.pipeline import router as pipeline_router
-from app.routes import notes, consent, analytics, affect, streams, datasets
-
-# Initialize tables
-Base.metadata.create_all(bind=engine)
+from app.routes import notes, consent, analytics, affect, streams, datasets, sessions
 
 app = FastAPI()
 
@@ -59,3 +56,4 @@ app.include_router(analytics.router, tags=["Analytics"])
 app.include_router(affect.router, tags=["Affective Computing"])
 app.include_router(streams.router, prefix="/ws", tags=["WebSockets"])
 app.include_router(datasets.router, tags=["Datasets"])
+app.include_router(sessions.router, prefix="/sessions", tags=["Sessions"])

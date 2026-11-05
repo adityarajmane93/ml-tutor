@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import Optional,Dict
 
 class Event(BaseModel):
@@ -10,6 +10,27 @@ class Event(BaseModel):
     source: str
     schema_version: str = "1.0"
     metadata: Dict
+    study_id: Optional[str] = Field(default=None, max_length=128)
+    participant_id: Optional[str] = Field(default=None, max_length=128)
+    client_timestamp: Optional[str] = None
+    client_sequence: Optional[int] = Field(default=None, ge=0)
+
+
+class EventBatch(BaseModel):
+    events: list[Event] = Field(min_length=1, max_length=100)
+
+
+class SessionStartPayload(BaseModel):
+    study_id: str = Field(min_length=1, max_length=128)
+    participant_id: str = Field(min_length=1, max_length=128)
+    session_id: str = Field(min_length=1, max_length=128)
+    client_started_at: Optional[str] = None
+
+
+class SessionEndPayload(BaseModel):
+    study_id: str = Field(min_length=1, max_length=128)
+    participant_id: str = Field(min_length=1, max_length=128)
+    client_ended_at: Optional[str] = None
 
 
 class SAMMData(BaseModel):

@@ -3,12 +3,15 @@ import traceback
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 from fastapi.concurrency import run_in_threadpool
 from app.execution.executor import execute_pipeline
+from app.core.security import validate_websocket_access
 from app.services.execution_tracking import finish_pipeline_execution, start_pipeline_execution
 
 router = APIRouter()
 
 @router.websocket("/ws/run")
 async def websocket_pipeline(websocket: WebSocket):
+    if not await validate_websocket_access(websocket):
+        return
     await websocket.accept()
     
     try:

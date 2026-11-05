@@ -1,7 +1,7 @@
 import logging
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, BackgroundTasks, HTTPException
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
@@ -10,6 +10,7 @@ from app.db.db import SessionLocal
 from app.models.database_models import EventModel, SAMMModel
 from app.models.pydantic_schemas import Event, EventBatch, SAMMPayload
 from app.services.websocket_manager import manager
+from app.core.security import require_researcher_key
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -39,8 +40,9 @@ def _event_payload(event: Event, server_timestamp: str) -> dict:
 
 def _persist_events(events: list[Event]) -> tuple[list[dict], set[str]]:
     """Commit a batch atomically and report pre-existing event IDs as acks."""
-    db: Session = SessionLocal()
+    db: Session | None = None
     try:
+        db = SessionLocal()
         event_ids = [event.event_id for event in events]
         existing_ids = {
             event_id
@@ -76,11 +78,13 @@ def _persist_events(events: list[Event]) -> tuple[list[dict], set[str]]:
         db.commit()
         return created, existing_ids
     except SQLAlchemyError as exc:
-        db.rollback()
+        if db is not None:
+            db.rollback()
         logger.exception("event_batch_commit_failed count=%s", len(events))
         raise HTTPException(status_code=503, detail="Event storage is unavailable") from exc
     finally:
-        db.close()
+        if db is not None:
+            db.close()
 
 @router.post("/log-event")
 def log_event(event: Event, background_tasks: BackgroundTasks):
@@ -101,7 +105,7 @@ def log_event_batch(payload: EventBatch, background_tasks: BackgroundTasks):
         "duplicate_event_ids": [event_id for event_id in existing_ids],
     }
 
-@router.get("/events")
+@router.get("/events", dependencies=[Depends(require_researcher_key)])
 def get_events():
     db: Session = SessionLocal()
     events = db.query(EventModel).all()
@@ -109,7 +113,7 @@ def get_events():
     db.close()
     return result
 
-@router.delete("/events")
+@router.delete("/events", dependencies=[Depends(require_researcher_key)])
 def clear_events():
     db: Session = SessionLocal()
     db.query(EventModel).delete()
@@ -148,7 +152,7 @@ async def log_samm(payload: SAMMPayload):
     })
     return {"status": "success", "message": "SAMM data logged"}
 
-@router.get("/samm")
+@router.get("/samm", dependencies=[Depends(require_researcher_key)])
 def get_samms():
     db: Session = SessionLocal()
     samm_records = db.query(SAMMModel).all()

@@ -10,6 +10,7 @@ from app.db.db import SessionLocal
 from app.services.websocket_manager import manager
 from app.services.rppg_calculator import calculate_bpm_from_rgb, WINDOW_SIZE
 from app.models.database_models import RppgModel
+from app.core.security import validate_websocket_access
 
 router = APIRouter()
 
@@ -18,6 +19,8 @@ rppg_last_db_save = {}
 
 @router.websocket("/dashboard")
 async def websocket_dashboard(websocket: WebSocket):
+    if not await validate_websocket_access(websocket, researcher_only=True):
+        return
     await manager.connect_dashboard(websocket)
     try:
         while True:
@@ -29,6 +32,8 @@ async def websocket_dashboard(websocket: WebSocket):
 
 @router.websocket("/rppg")
 async def rppg_websocket(websocket: WebSocket):
+    if not await validate_websocket_access(websocket):
+        return
     await websocket.accept()
     print("---rPPG Fast-Stream Connected---")
     session_id = None

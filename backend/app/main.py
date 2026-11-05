@@ -1,6 +1,7 @@
 import os
 import traceback
 import torch 
+import logging
 
 # This intercepts the library's internal code and forces it to bypass the security block.
 _original_load = torch.load
@@ -12,33 +13,35 @@ def _patched_load(*args, **kwargs):
 torch.load = _patched_load
 # ---------------------------------------
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from sqlalchemy import text
 
-from app.db.db import SessionLocal, engine, Base
+from app.core.logging import configure_logging
+from app.core.security import allowed_origins
+from app.db.db import engine
 
 # Import the new routers!
 from app.routes.pipeline import router as pipeline_router
 from app.routes import notes, consent, analytics, affect, streams, datasets, sessions
 
-app = FastAPI()
+configure_logging()
+logger = logging.getLogger(__name__)
 
-FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:5173")
+app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
+    allow_origins=allowed_origins(),
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
 @app.exception_handler(Exception)
 async def validation_exception_handler(request: Request, exc: Exception):
-    print("\n=== !!! BACKEND ERROR !!! ===")
-    traceback.print_exc()
-    print("=======================================\n")
+    logger.exception("unhandled_backend_error method=%s path=%s", request.method, request.url.path)
     return JSONResponse(
         status_code=400,
         content={"status": "error", "message": "Pipeline processing failed"}
@@ -47,6 +50,22 @@ async def validation_exception_handler(request: Request, exc: Exception):
 @app.get("/")
 def root():
     return {"message": "ML-Tutor Backend Running"}
+
+
+@app.get("/health")
+def health():
+    return {"status": "ok"}
+
+
+@app.get("/ready")
+def readiness():
+    try:
+        with engine.connect() as connection:
+            connection.execute(text("SELECT 1"))
+        return {"status": "ready"}
+    except Exception as exc:
+        logger.exception("readiness_database_failed")
+        raise HTTPException(status_code=503, detail="Database is unavailable") from exc
 
 # Plug in the detached modules!
 app.include_router(pipeline_router) # Preserved your original pipeline router

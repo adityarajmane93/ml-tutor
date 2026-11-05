@@ -58,6 +58,12 @@ def health():
     return {"status": "ok", "service": "affect-inference"}
 
 
+@app.get("/ready")
+def ready():
+    """The model is loaded before the application starts serving requests."""
+    return {"status": "ready", "service": "affect-inference"}
+
+
 @app.post("/infer")
 async def infer(file: UploadFile = File(...), x_internal_service_key: str | None = Header(default=None)):
     require_internal_key(x_internal_service_key)

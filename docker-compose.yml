@@ -17,7 +17,7 @@ services:
     build: {context: ., dockerfile: services/affect_inference/Dockerfile}
     environment: {INTERNAL_SERVICE_API_KEY: ${INTERNAL_SERVICE_API_KEY:?set-internal-service-key}, AFFECT_MAX_CONCURRENCY: 1, AFFECT_INFERENCE_TIMEOUT_SECONDS: 15, AFFECT_MAX_IMAGE_BYTES: 5242880}
   core-api:
-    build: {context: ./backend, dockerfile: Dockerfile}
+    build: {context: ., dockerfile: backend/Dockerfile}
     depends_on: {postgres: {condition: service_healthy}, ml-execution: {condition: service_started}, affect-inference: {condition: service_started}}
     ports: ["8000:8080"]
     environment:

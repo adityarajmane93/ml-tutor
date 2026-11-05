@@ -54,6 +54,12 @@ def health():
     return {"status": "ok", "service": "ml-execution"}
 
 
+@app.get("/ready")
+def ready():
+    """Report that this process finished startup and can accept executions."""
+    return {"status": "ready", "service": "ml-execution"}
+
+
 @app.post("/execute", dependencies=[])
 async def execute(payload: ExecutionRequest, x_internal_service_key: str | None = Header(default=None)):
     require_internal_key(x_internal_service_key)

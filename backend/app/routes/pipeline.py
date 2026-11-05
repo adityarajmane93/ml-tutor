@@ -1,10 +1,10 @@
 import json
 import traceback
+import asyncio
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
-from fastapi.concurrency import run_in_threadpool
-from app.execution.executor import execute_pipeline
 from app.core.security import validate_websocket_access
 from app.services.execution_tracking import finish_pipeline_execution, start_pipeline_execution
+from app.services.internal_clients import execute_pipeline
 
 router = APIRouter()
 
@@ -21,11 +21,9 @@ async def websocket_pipeline(websocket: WebSocket):
         data = json.loads(raw_text)
         execution_id = await run_in_threadpool(start_pipeline_execution, data)
         
-        # Pass the parsed data directly to the executor
-        # Fitting models is CPU-bound. Keep the async server loop available to
-        # other clients while a pipeline is being executed.
-        result = await run_in_threadpool(execute_pipeline, data)
-        await run_in_threadpool(finish_pipeline_execution, execution_id, result)
+        # CPU-bound work happens only in the ML Execution Service.
+        result = await execute_pipeline(data)
+        await asyncio.to_thread(finish_pipeline_execution, execution_id, result)
 
         await websocket.send_json(result)
 
@@ -36,7 +34,7 @@ async def websocket_pipeline(websocket: WebSocket):
         traceback.print_exc() 
         print("================================\n")
         try:
-            await run_in_threadpool(finish_pipeline_execution, locals().get("execution_id"), None, str(e))
+            await asyncio.to_thread(finish_pipeline_execution, locals().get("execution_id"), None, str(e))
         except Exception:
             pass
         await websocket.send_json({"error": str(e)})

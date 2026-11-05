@@ -1,22 +1,11 @@
-import os
-import traceback
-import torch 
 import logging
-
-# This intercepts the library's internal code and forces it to bypass the security block.
-_original_load = torch.load
-
-def _patched_load(*args, **kwargs):
-    kwargs['weights_only'] = False
-    return _original_load(*args, **kwargs)
-
-torch.load = _patched_load
-# ---------------------------------------
+import os
 
 from fastapi import FastAPI, Request, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from sqlalchemy import text
+import httpx
 
 from app.core.logging import configure_logging
 from app.core.security import allowed_origins
@@ -62,7 +51,14 @@ def readiness():
     try:
         with engine.connect() as connection:
             connection.execute(text("SELECT 1"))
-        return {"status": "ready"}
+        dependencies = {}
+        for name, url_name, default_url in (("ml_execution", "ML_EXECUTION_SERVICE_URL", "http://localhost:8001"), ("affect_inference", "AFFECT_INFERENCE_SERVICE_URL", "http://localhost:8002")):
+            try:
+                response = httpx.get(f"{os.getenv(url_name, default_url).rstrip('/')}/health", timeout=2.0)
+                dependencies[name] = "healthy" if response.is_success else "unavailable"
+            except httpx.HTTPError:
+                dependencies[name] = "unavailable"
+        return {"status": "ready", "dependencies": dependencies}
     except Exception as exc:
         logger.exception("readiness_database_failed")
         raise HTTPException(status_code=503, detail="Database is unavailable") from exc

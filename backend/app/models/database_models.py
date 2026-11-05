@@ -50,6 +50,18 @@ class AffectModel(Base):
     participant_id = Column(String, index=True, nullable=True)
     client_timestamp = Column(String, nullable=True)
     server_timestamp = Column(String, nullable=True)
+
+
+class AffectInferenceFailureModel(Base):
+    __tablename__ = "affect_inference_failures"
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    session_id = Column(String, index=True)
+    study_id = Column(String, index=True, nullable=True)
+    participant_id = Column(String, index=True, nullable=True)
+    timestamp = Column(String)
+    client_timestamp = Column(String, nullable=True)
+    server_timestamp = Column(String, index=True, nullable=False)
+    failure_reason = Column(String, nullable=False)
     
     
 class RppgModel(Base):

@@ -100,10 +100,16 @@ def create_study(payload: StudyCreatePayload) -> dict[str, Any]:
     db = SessionLocal()
     try:
         ensure_default_study(db)
-        study = StudyModel(study_id=str(uuid4()), name=payload.name.strip(), description=payload.description.strip() if payload.description else None, status="draft", created_at=utc_now())
+        name = payload.name.strip()
+        if not name:
+            raise HTTPException(status_code=422, detail="Study name is required")
+        study = StudyModel(study_id=str(uuid4()), name=name, description=payload.description.strip() if payload.description else None, status="draft", created_at=utc_now())
         db.add(study)
         db.commit()
         return {"item": _study_payload(study, 0)}
+    except HTTPException:
+        db.rollback()
+        raise
     except Exception:
         db.rollback()
         raise HTTPException(status_code=503, detail="Study could not be created")

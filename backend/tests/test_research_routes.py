@@ -89,6 +89,9 @@ class ResearchRoutesTests(unittest.TestCase):
         self.assertEqual(self.client.post(f"/research/studies/{first}/start", headers=self.headers).status_code, 200)
         self.assertEqual(self.client.post(f"/research/studies/{second}/start", headers=self.headers).status_code, 409)
 
+    def test_study_name_cannot_be_only_whitespace(self):
+        self.assertEqual(self.client.post("/research/studies", headers=self.headers, json={"name": "   "}).status_code, 422)
+
 
 if __name__ == "__main__":
     unittest.main()

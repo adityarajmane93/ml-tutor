@@ -22,11 +22,6 @@ def _start_session(payload: SessionStartPayload) -> dict:
     try:
         existing = db.get(StudySessionModel, payload.session_id)
         if existing:
-            if (
-                existing.study_id != payload.study_id
-                or existing.participant_id != payload.participant_id
-            ):
-                raise HTTPException(status_code=409, detail="Session ID belongs to another participant")
             return {
                 "status": "existing",
                 "session_id": existing.session_id,
@@ -36,8 +31,8 @@ def _start_session(payload: SessionStartPayload) -> dict:
 
         session = StudySessionModel(
             session_id=payload.session_id,
-            study_id=payload.study_id,
-            participant_id=payload.participant_id,
+            study_id=None,
+            participant_id=None,
             client_started_at=payload.client_started_at,
             server_started_at=_utc_now(),
         )
@@ -53,7 +48,7 @@ def _start_session(payload: SessionStartPayload) -> dict:
         # Concurrent start attempts for the same UUID are idempotent.
         db.rollback()
         existing = db.get(StudySessionModel, payload.session_id)
-        if existing and existing.study_id == payload.study_id and existing.participant_id == payload.participant_id:
+        if existing:
             return {
                 "status": "existing",
                 "session_id": existing.session_id,
@@ -78,8 +73,6 @@ def _end_session(session_id: str, payload: SessionEndPayload) -> dict:
         session = db.get(StudySessionModel, session_id)
         if not session:
             raise HTTPException(status_code=404, detail="Session not found")
-        if session.study_id != payload.study_id or session.participant_id != payload.participant_id:
-            raise HTTPException(status_code=403, detail="Session context does not match")
         if session.server_ended_at:
             return {"status": "already_ended", "session_id": session_id, "server_ended_at": session.server_ended_at}
 

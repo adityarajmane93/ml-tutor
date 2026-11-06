@@ -23,9 +23,9 @@ from sqlalchemy.exc import OperationalError
 
 from app.core.security import require_researcher_key
 from app.db.db import Base, SessionLocal, engine
-from app.models.database_models import AffectModel, EventModel, StudySessionModel
-from app.models.pydantic_schemas import Event, SessionEndPayload, SessionStartPayload
-from app.routes import affect, analytics, sessions
+from app.models.database_models import AffectModel, EventModel, GazeCalibrationModel, GazeSampleModel, StudySessionModel
+from app.models.pydantic_schemas import Event, GazeCalibrationPayload, GazeSampleBatch, GazeSamplePayload, SessionEndPayload, SessionStartPayload
+from app.routes import affect, analytics, gaze, sessions
 from app.services.rppg_calculator import calculate_bpm_from_rgb
 
 
@@ -36,7 +36,7 @@ class PhaseOneStabilizationTests(unittest.TestCase):
 
     def setUp(self):
         db = SessionLocal()
-        for model in (EventModel, AffectModel, StudySessionModel):
+        for model in (EventModel, AffectModel, GazeSampleModel, GazeCalibrationModel, StudySessionModel):
             db.query(model).delete()
         db.commit()
         db.close()
@@ -44,8 +44,6 @@ class PhaseOneStabilizationTests(unittest.TestCase):
     def _event(self, event_id: str) -> Event:
         return Event(
             event_id=event_id,
-            study_id="study-a",
-            participant_id="participant-a",
             session_id="session-a",
             timestamp="1735689600",
             client_timestamp="2025-01-01T00:00:00+00:00",
@@ -58,12 +56,12 @@ class PhaseOneStabilizationTests(unittest.TestCase):
         )
 
     def test_session_start_is_idempotent_and_end_is_explicit(self):
-        start = SessionStartPayload(study_id="study-a", participant_id="participant-a", session_id="session-a")
+        start = SessionStartPayload(session_id="session-a")
         self.assertEqual(sessions._start_session(start)["status"], "started")
         self.assertEqual(sessions._start_session(start)["status"], "existing")
         ended = sessions._end_session(
             "session-a",
-            SessionEndPayload(study_id="study-a", participant_id="participant-a"),
+            SessionEndPayload(),
         )
         self.assertEqual(ended["status"], "ended")
 
@@ -104,10 +102,26 @@ class PhaseOneStabilizationTests(unittest.TestCase):
         self.assertEqual(raised.exception.status_code, 401)
         self.assertIsNone(require_researcher_key("test-researcher-key"))
 
-    def test_affect_route_keeps_context_parameters_and_model_contract(self):
+    def test_affect_route_uses_session_only_contract(self):
         parameters = inspect.signature(affect.predict_valenceArousal).parameters
-        self.assertTrue({"session_id", "study_id", "participant_id", "client_timestamp"}.issubset(parameters))
+        self.assertTrue({"session_id", "client_timestamp"}.issubset(parameters))
+        self.assertFalse({"study_id", "participant_id"}.intersection(parameters))
         self.assertTrue(callable(affect.infer_affect))
+
+    def test_gaze_batch_is_session_bound_and_idempotent(self):
+        sessions._start_session(SessionStartPayload(session_id="gaze-session"))
+        calibration = GazeCalibrationPayload(
+            calibration_id="calibration-1", session_id="gaze-session", started_at="2026-01-01T00:00:00Z",
+            viewport_width=1280, viewport_height=720, quality_status="acceptable",
+        )
+        self.assertEqual(gaze.save_calibration(calibration)["status"], "saved")
+        batch = GazeSampleBatch(samples=[GazeSamplePayload(
+            sample_id="sample-1", session_id="gaze-session", client_timestamp="2026-01-01T00:00:01Z",
+            elapsed_ms=1000, x=100, y=200, viewport_width=1280, viewport_height=720,
+            route="/sandbox", aoi_type="dataset_node", aoi_id="1", calibration_id="calibration-1",
+        )])
+        self.assertEqual(gaze.save_samples(batch)["created_sample_ids"], ["sample-1"])
+        self.assertEqual(gaze.save_samples(batch)["duplicate_sample_ids"], ["sample-1"])
 
     def test_rppg_calculation_contract_is_unchanged(self):
         import numpy as np

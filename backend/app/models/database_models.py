@@ -80,8 +80,9 @@ class StudySessionModel(Base):
     __tablename__ = "study_sessions"
 
     session_id = Column(String, primary_key=True)
-    study_id = Column(String, index=True, nullable=False)
-    participant_id = Column(String, index=True, nullable=False)
+    # Legacy nullable columns retained to preserve prior research rows.
+    study_id = Column(String, index=True, nullable=True)
+    participant_id = Column(String, index=True, nullable=True)
     client_started_at = Column(String, nullable=True)
     server_started_at = Column(String, index=True, nullable=False)
     client_ended_at = Column(String, nullable=True)
@@ -131,3 +132,36 @@ class ConsentFormModel(Base):
     p3_child_signature = Column(String)
     p3_guardian_signature = Column(String)
     p3_date = Column(String)
+
+
+class GazeCalibrationModel(Base):
+    __tablename__ = "gaze_calibrations"
+    calibration_id = Column(String, primary_key=True)
+    session_id = Column(String, index=True, nullable=False)
+    started_at = Column(String, nullable=False)
+    completed_at = Column(String, nullable=True)
+    viewport_width = Column(Integer, nullable=False)
+    viewport_height = Column(Integer, nullable=False)
+    calibration_metadata = Column(JSON, nullable=True)
+    validation_metadata = Column(JSON, nullable=True)
+    median_error_px = Column(Float, nullable=True)
+    mean_error_px = Column(Float, nullable=True)
+    quality_status = Column(String, nullable=False)
+
+
+class GazeSampleModel(Base):
+    __tablename__ = "gaze_samples"
+    sample_id = Column(String, primary_key=True)
+    session_id = Column(String, index=True, nullable=False)
+    client_timestamp = Column(String, nullable=False)
+    server_timestamp = Column(String, index=True, nullable=False)
+    elapsed_ms = Column(Integer, nullable=False)
+    x = Column(Float, nullable=True)
+    y = Column(Float, nullable=True)
+    viewport_width = Column(Integer, nullable=False)
+    viewport_height = Column(Integer, nullable=False)
+    route = Column(String, nullable=False)
+    aoi_type = Column(String, nullable=False)
+    aoi_id = Column(String, nullable=True)
+    calibration_id = Column(String, index=True, nullable=True)
+    validity_metadata = Column(JSON, nullable=True)

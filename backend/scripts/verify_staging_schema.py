@@ -11,12 +11,14 @@ import sys
 from sqlalchemy import create_engine, inspect, text
 
 
-EXPECTED_REVISION = "20261105_03"
+EXPECTED_REVISION = "20261106_04"
 EXPECTED_TABLES = {
     "events": {"event_id", "session_id", "study_id", "participant_id", "client_timestamp", "server_timestamp", "client_sequence"},
     "study_sessions": {"session_id", "study_id", "participant_id", "server_started_at", "server_ended_at"},
     "pipeline_executions": {"execution_id", "session_id", "status", "server_started_at"},
     "affect_inference_failures": {"id", "session_id", "failure_reason", "server_timestamp"},
+    "gaze_calibrations": {"calibration_id", "session_id", "quality_status", "validation_metadata"},
+    "gaze_samples": {"sample_id", "session_id", "client_timestamp", "server_timestamp", "elapsed_ms", "aoi_type"},
 }
 
 

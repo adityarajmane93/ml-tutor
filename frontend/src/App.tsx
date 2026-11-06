@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { BrowserRouter as Router, Routes, Route, useNavigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, useLocation, useNavigate } from 'react-router-dom';
 
 // import logo from '/images/logo.png'; 
 import laLogo from '/images/la_logo.png'; 
@@ -11,17 +11,20 @@ import InstructionsPage from './components/InstructionsPage';
 import LiveAnalyticsDashboard from './components/AnalyticsDashboard'; 
 import StartupDashboard from './components/StartupDashboard'; 
 import ProblemStatement from './components/ProblemStatement'; 
+import ResearchPage from './components/ResearchPage';
 import "./App.css";
 import { useSessionStore } from './store/sessionStore';
 
 function AppContent() {
   const navigate = useNavigate();
+  const location = useLocation();
   const startSession = useSessionStore((state) => state.startSession);
   const sessionEnded = useSessionStore((state) => state.ended);
+  const isResearchRoute = location.pathname === '/research';
 
   useEffect(() => {
-    void startSession();
-  }, [startSession]);
+    if (!isResearchRoute) void startSession();
+  }, [isResearchRoute, startSession]);
 
   // State to track dashboard completion!
   const [hasConsented, setHasConsented] =  useState(true); //useState(false);
@@ -29,14 +32,14 @@ function AppContent() {
   const [instructionsViewed, setInstructionsViewed] = useState(false);
   const [problemViewed, setProblemViewed] = useState(false);
 
-  if (sessionEnded) {
+  if (!isResearchRoute && sessionEnded) {
     return <div style={{ minHeight: "100vh", display: "grid", placeItems: "center", textAlign: "center" }}><div><h1>Session Completed</h1><p>Thank you for participating.</p></div></div>;
   }
 
   return (
     <div style={{ width: '98%',padding: "0.5rem", textAlign: "center", margin: "0 auto" }}>
       
-      { (
+      {!isResearchRoute && (
         <div style={{ padding: "18px 180px", display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "1px", gap: "1px" }}>
             <img src={etLogo} alt="CET logo" style={{ width: 80, height: 80, objectFit: "contain" }} />
           
@@ -87,6 +90,7 @@ function AppContent() {
         <Route path="/sandbox" element={<PipelineCanvas />} />
         
         <Route path="/analytics" element={<LiveAnalyticsDashboard />} />
+        <Route path="/research" element={<ResearchPage />} />
       </Routes>
     </div>
   );

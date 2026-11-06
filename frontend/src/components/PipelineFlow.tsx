@@ -65,6 +65,8 @@ import { logEvent }
 
 import { logPipelineSnapshot }
   from "../services/pipelineSnapshot";
+import { getNodeConfigChanges }
+  from "../services/nodeConfigEvents";
 import { getSessionContext, useSessionStore } from "../store/sessionStore";
 import { flushEventQueue, cancelTelemetryRetry } from "../services/logger";
 import { flushGazeQueue, cancelGazeRetry } from "../services/gaze";
@@ -243,7 +245,8 @@ export default function PipelineFlow() {
 
     // Log the "OPEN" event!
     await logEvent("CLICK_EVENT", "LEARN_MODAL_OPENED", {
-      type_viewed: typeToView
+      type_viewed: typeToView,
+      resource_id: typeToView,
     });
   }
 
@@ -256,7 +259,8 @@ export default function PipelineFlow() {
     setShowLearnModal(true);
 
     await logEvent("CLICK_EVENT", "LEARN_MODAL_OPENED", {
-      type_viewed: "allNotes"
+      type_viewed: "allNotes",
+      resource_id: "allNotes",
     });
   }
 
@@ -275,6 +279,18 @@ export default function PipelineFlow() {
             if (
               node.id === nodeId
             ) {
+
+              const changes = getNodeConfigChanges(
+                (node.data ?? {}) as Record<string, unknown>,
+                newData,
+              );
+              if (changes.length > 0) {
+                void logEvent("PIPELINE_EVENT", "NODE_CONFIG_CHANGED", {
+                  node_id: node.id,
+                  node_type: node.type ?? "unknown",
+                  changes,
+                });
+              }
 
               return {
                 ...node,
@@ -438,6 +454,7 @@ export default function PipelineFlow() {
     // Log the event to your backend
     await logEvent("CLICK_EVENT", "LEARN_MODAL_CLOSED", {
       type_viewed: learnModalType,
+      resource_id: learnModalType,
       time_open_seconds: durationSeconds // Store the duration in metadata!
     });
     
@@ -586,7 +603,7 @@ export default function PipelineFlow() {
               onEdgesChange={ending || ended ? () => undefined : onEdgesChange}
               onConnect={onConnect}
               deleteKeyCode={ending || ended ? [] : ["Backspace", "Delete"]}
-              onNodeDragStop={ending || ended ? undefined : (_, node) => handleNodeDragStop(node)}
+              onNodeDragStop={ending || ended ? undefined : (_, node) => handleNodeDragStop(node, nodes, edges)}
               onNodesDelete={ending || ended ? undefined : (deletedNodes) => handleNodesDelete(deletedNodes, nodes, edges)}
               onEdgesDelete={ending || ended ? undefined : (deletedEdges) => handleEdgesDelete(deletedEdges, nodes, edges)}
               nodesDraggable={!ending && !ended && gazeReady}
@@ -626,12 +643,13 @@ export default function PipelineFlow() {
             <SessionTimer />
             <AllNotesButton onClick={openAllNotes} />
             <button
-              className="counter"
+              className="counter end-session-button"
               onClick={() => setShowEndConfirm(true)}
               disabled={ending || ended}
               style={{ background: "#fff", color: "#b91c1c", border: "3px solid #b91c1c", margin: 0, cursor: "pointer" }}
               aria-label="End Session"
-            >↪ End Session</button>
+              title="End Session"
+            ><span aria-hidden="true">↪</span></button>
           </div>
           {/* LEFT: SAMM Tracker */}
           <div style={{ 

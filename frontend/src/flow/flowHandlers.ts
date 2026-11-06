@@ -57,7 +57,9 @@ export async function handleConnect(
 }
 
 export async function handleNodeDragStop(
-  node: Node
+  node: Node,
+  nodes: Node[],
+  edges: Edge[],
 ) {
 
   await logEvent(
@@ -68,6 +70,15 @@ export async function handleNodeDragStop(
       finalPosition:
         node.position,
     }
+  );
+
+  // React Flow state may still be settling at this callback boundary. Preserve
+  // the final callback position in the snapshot explicitly.
+  await logPipelineSnapshot(
+    nodes.map((currentNode) => currentNode.id === node.id
+      ? { ...currentNode, position: node.position }
+      : currentNode),
+    edges,
   );
 }
 

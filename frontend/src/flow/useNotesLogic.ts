@@ -45,6 +45,7 @@ export function useNotesLogic(selectedType: string, onClose: () => void) {
     try {
       await logEvent('LEARN_TAB', 'HIGHLIGHT_ABANDONED', {
         node_type: activeTabRef.current,
+        resource_id: activeTabRef.current,
         highlighted_text: highlightToLog.text,
         start_index: highlightToLog.start,
         end_index: highlightToLog.end
@@ -59,6 +60,7 @@ export function useNotesLogic(selectedType: string, onClose: () => void) {
     try {
       await logEvent('LEARN_TAB', 'NOTE_ABANDONED', {
         node_type: activeTabRef.current,
+        resource_id: activeTabRef.current,
         abandoned_text: noteToLog
       });
     } catch (error) {
@@ -188,8 +190,14 @@ export function useNotesLogic(selectedType: string, onClose: () => void) {
   const handleTabSwitch = (newTabId: string) => {
     logEvent('LEARN_TAB', 'TAB_CHANGED', {
       from_node: activeTabRef.current,
-      to_node: newTabId
+      to_node: newTabId,
+      from_resource_id: activeTabRef.current,
+      to_resource_id: newTabId,
     }).catch(err => console.error("Failed to log tab switch:", err));
+    logEvent('LEARN_TAB', 'LEARN_RESOURCE_CHANGED', {
+      from_resource_id: activeTabRef.current,
+      to_resource_id: newTabId,
+    }).catch(err => console.error("Failed to log resource switch:", err));
 
     // Catch entire notes left behind when switching tabs
     if (typedNoteRef.current.trim() !== '') {
@@ -237,7 +245,8 @@ export function useNotesLogic(selectedType: string, onClose: () => void) {
     try {
       await logEvent('LEARN_TAB', 'NOTE_DELETED_IN_DB', { 
         note_id: noteId, 
-        node_type: nodeType || activeTab 
+        node_type: nodeType || activeTab,
+        resource_id: nodeType || activeTab,
       });
       await axios.delete(`${import.meta.env.VITE_API_URL}/notes/${noteId}`);
     } catch (error) {
@@ -343,7 +352,23 @@ export function useNotesLogic(selectedType: string, onClose: () => void) {
     const end = start + selectedString.length;
 
     if (selectedString.trim().length > 0) {
-      setHighlightData({ text: selectedString, start, end });
+      const nextHighlight = { text: selectedString, start, end };
+      const previousHighlight = highlightDataRef.current;
+      if (
+        !previousHighlight ||
+        previousHighlight.text !== nextHighlight.text ||
+        previousHighlight.start !== nextHighlight.start ||
+        previousHighlight.end !== nextHighlight.end
+      ) {
+        void logEvent('LEARN_TAB', 'HIGHLIGHT_CREATED', {
+          node_type: activeTabRef.current,
+          resource_id: activeTabRef.current,
+          highlighted_text: selectedString,
+          start_index: start,
+          end_index: end,
+        });
+      }
+      setHighlightData(nextHighlight);
     }
   };
 
@@ -367,6 +392,7 @@ export function useNotesLogic(selectedType: string, onClose: () => void) {
 
       await logEvent('LEARN_TAB', 'NOTE_SAVED', { 
         node_type: activeTab,
+        resource_id: activeTab,
         highlighted_text: highlightData?.text || null,
         custom_note: typedNote || null
       });

@@ -1,8 +1,9 @@
-import React, { useState, useEffect, memo } from 'react';
+import React, { useState, useEffect, useRef, memo } from 'react';
 import parse, { Element, domToReact, type DOMNode } from 'html-react-parser';
 import { useNotesLogic } from '../flow/useNotesLogic';
 import type { SavedNote } from '../flow/useNotesLogic';
 import NotesPanel from './NotesPanel';
+import { logEvent } from '../services/logger';
 
 // --- SHARED TYPES ---
 type HighlightableTextProps = {
@@ -190,19 +191,20 @@ type AllNotesViewProps = {
   onReference: (note: SavedNote) => void;
   onDelete: (e: React.MouseEvent, noteId: number, nodeType?: string) => void;
   logTabSwitch : (tabName: string) => void;
+  onScroll: (event: React.UIEvent<HTMLDivElement>) => void;
 };
 
-const AllNotesView = ({ notesList, onReference, onDelete, logTabSwitch  }: AllNotesViewProps) => {
+const AllNotesView = ({ notesList, onReference, onDelete, logTabSwitch, onScroll }: AllNotesViewProps) => {
   if (notesList.length === 0) {
     return (
-      <div style={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center', color: '#6b7280',  }}>
+      <div data-aoi-type="learn_notes" data-aoi-id="allNotes" style={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center', color: '#6b7280',  }}>
         <h2>No notes saved yet.<br />Start exploring nodes to build your Notes!</h2>
       </div>
     );
   }
 
   return (
-    <div style={{ flex: 1, overflowY: 'auto', paddingRight: '10px' }}>
+    <div data-aoi-type="learn_notes" data-aoi-id="allNotes" onScroll={onScroll} style={{ flex: 1, overflowY: 'auto', paddingRight: '10px' }}>
       <h2 style={{ marginTop: 0, fontSize: '2rem', borderBottom: '2px solid #271711', paddingBottom: '12px' }}>
          All Notes
       </h2>
@@ -280,6 +282,29 @@ export default function LearnModal({
   
   // Connect to the extracted logic!
   const logic = useNotesLogic(selectedType, onClose);
+  const resourceVisitRef = useRef(0);
+  const completedMilestonesRef = useRef(new Set<string>());
+
+  useEffect(() => {
+    resourceVisitRef.current += 1;
+  }, [logic.activeTab]);
+
+  const handleResourceScroll = (event: React.UIEvent<HTMLDivElement>) => {
+    const { scrollTop, scrollHeight, clientHeight } = event.currentTarget;
+    const scrollableHeight = scrollHeight - clientHeight;
+    if (scrollableHeight <= 0) return;
+    const depth = Math.min(100, Math.max(0, (scrollTop / scrollableHeight) * 100));
+    for (const milestone of [25, 50, 75, 100]) {
+      const key = `${logic.activeTab}:${resourceVisitRef.current}:${milestone}`;
+      if (depth >= milestone && !completedMilestonesRef.current.has(key)) {
+        completedMilestonesRef.current.add(key);
+        void logEvent('LEARN_TAB', 'RESOURCE_SCROLL_MILESTONE', {
+          resource_id: logic.activeTab,
+          scroll_depth_percent: milestone,
+        });
+      }
+    }
+  };
 
   const renderContent = () => {
     // Dynamically load the HTML file matching the activeTab name!
@@ -294,6 +319,7 @@ export default function LearnModal({
 
   return (
     <div
+      data-aoi-type="learn_controls"
       style={{
         position: 'fixed',
         top: 0,
@@ -353,6 +379,7 @@ export default function LearnModal({
           
           {/* LEFT PANE: NAVIGATION SIDEBAR */}
           <div
+            data-aoi-type="learn_navigation"
             style={{
               display: 'flex',
               flexDirection: 'column',
@@ -407,20 +434,26 @@ export default function LearnModal({
               onReference={logic.handleNoteReference} 
               onDelete={logic.handleDeleteNote}
               logTabSwitch={logic.handleTabSwitch}
+              onScroll={handleResourceScroll}
             />
           ) : (
             <>
               {/* MIDDLE PANE: READING CONTENT */}
               <div
                 id="middle-reading-pane"
+                data-aoi-type="learn_content"
+                data-aoi-id={logic.activeTab}
                 style={{ flex: 2, overflowY: 'auto', paddingRight: '20px', textAlign: 'left' }}
                 onMouseUp={logic.handleTextSelection}
+                onScroll={handleResourceScroll}
               >
                 {renderContent()}
               </div>
 
               {/* RIGHT PANE: STUDY NOTES DASHBOARD */}
-              <NotesPanel {...logic} />
+              <div data-aoi-type="learn_notes" data-aoi-id={logic.activeTab}>
+                <NotesPanel {...logic} />
+              </div>
             </>
           )}
           

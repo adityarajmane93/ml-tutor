@@ -5,6 +5,7 @@ export type TimelineEvent = {
   timeMs: number;
   category: string;
   label: string;
+  action?: string;
   metadata: Record<string, unknown>;
   derived?: boolean;
 };

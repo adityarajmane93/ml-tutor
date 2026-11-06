@@ -4,12 +4,14 @@ import {
   Chart as ChartJS, LinearScale, LineElement, PointElement, Tooltip, Legend,
 } from "chart.js";
 import { Line } from "react-chartjs-2";
+import ResearchAnalysis from "./ResearchAnalysis";
 import type { ResearchSession, ResearchSessionData } from "../services/researchApi";
 import { getResearchSessionData } from "../services/researchApi";
 import {
   AFFECT_CENTROIDS, aoiVisits, euclideanDistance, nearestAtOrBefore, nearby,
   timelineBounds, withObservationTimes, workflowAt, type TimelineEvent,
 } from "../services/researchTimeline";
+import { normalizedWindow, type TimeWindow } from "../services/researchAnalysis";
 
 ChartJS.register(LinearScale, LineElement, PointElement, Tooltip, Legend);
 
@@ -30,9 +32,9 @@ function shortTime(timeMs: number): string {
 }
 
 function asTimedEvents(data: ResearchSessionData): TimelineEvent[] {
-  const events = withObservationTimes(data.events).map((event) => ({ id: event.event_id, timeMs: event.timeMs, category: event.event_type, label: event.action, metadata: event.metadata }));
-  const samm = withObservationTimes(data.samm).map((record) => ({ id: `samm-${record.id}`, timeMs: record.timeMs, category: "SAMM", label: "SAMM submission", metadata: { valence: record.valence, arousal: record.arousal, dominance: record.dominance }, derived: true }));
-  const executions = withObservationTimes(data.executions.map((record) => ({ ...record, timestamp: record.client_started_at ?? record.server_started_at, client_timestamp: record.client_started_at, server_timestamp: record.server_started_at }))).map((record) => ({ id: `execution-${record.execution_id}`, timeMs: record.timeMs, category: "EXECUTION", label: `Pipeline ${record.status}`, metadata: { execution_id: record.execution_id, status: record.status, error_message: record.error_message }, derived: true }));
+  const events = withObservationTimes(data.events).map((event) => ({ id: event.event_id, timeMs: event.timeMs, category: event.event_type, label: event.action, action: event.action, metadata: event.metadata }));
+  const samm = withObservationTimes(data.samm).map((record) => ({ id: `samm-${record.id}`, timeMs: record.timeMs, category: "SAMM", label: "SAMM submission", action: "SAMM_SUBMISSION", metadata: { valence: record.valence, arousal: record.arousal, dominance: record.dominance }, derived: true }));
+  const executions = withObservationTimes(data.executions.map((record) => ({ ...record, timestamp: record.client_started_at ?? record.server_started_at, client_timestamp: record.client_started_at, server_timestamp: record.server_started_at }))).map((record) => ({ id: `execution-${record.execution_id}`, timeMs: record.timeMs, category: "EXECUTION", label: `Pipeline ${record.status}`, action: "PIPELINE_EXECUTION", metadata: { execution_id: record.execution_id, status: record.status, error_message: record.error_message }, derived: true }));
   return [...events, ...samm, ...executions].sort((left, right) => left.timeMs - right.timeMs);
 }
 
@@ -55,10 +57,11 @@ export default function ResearchDashboard({ researcherKey, session }: { research
   const [radius, setRadius] = useState(0.1);
   const [showVisits, setShowVisits] = useState(false);
   const [zoomWindowMs, setZoomWindowMs] = useState<number | null>(null);
+  const [affectWindow, setAffectWindow] = useState<TimeWindow | null>(null);
 
   useEffect(() => {
     let active = true;
-    setLoading(true); setError(""); setData(null); setCursor(null); setSelectedEvent(null); setZoomWindowMs(null);
+    setLoading(true); setError(""); setData(null); setCursor(null); setSelectedEvent(null); setZoomWindowMs(null); setAffectWindow(null);
     void getResearchSessionData(researcherKey, session.session_id).then((next) => {
       if (!active) return;
       const times = [
@@ -77,6 +80,8 @@ export default function ResearchDashboard({ researcherKey, session }: { research
   const samm = useMemo(() => data ? withObservationTimes(data.samm) : [], [data]);
   const gaze = useMemo(() => data ? withObservationTimes(data.gaze) : [], [data]);
   const snapshots = useMemo(() => data ? withObservationTimes(data.snapshots) : [], [data]);
+  const rawEvents = useMemo(() => data ? withObservationTimes(data.events) : [], [data]);
+  const executions = useMemo(() => data ? withObservationTimes(data.executions.map((record) => ({ ...record, timestamp: record.client_started_at ?? record.server_started_at, client_timestamp: record.client_started_at, server_timestamp: record.server_started_at }))) : [], [data]);
   const events = useMemo(() => data ? asTimedEvents(data) : [], [data]);
   const bounds = useMemo(() => timelineBounds([...affect, ...samm, ...gaze, ...events].map((record) => record.timeMs), session.server_started_at, session.server_ended_at), [affect, samm, gaze, events, session]);
   const eventCategories = useMemo(() => [...new Set(events.map((event) => event.category))], [events]);
@@ -107,6 +112,15 @@ export default function ResearchDashboard({ researcherKey, session }: { research
     ].filter(Boolean),
   } as any;
   const linearTimeOptions = { responsive: true, maintainAspectRatio: false, animation: false, parsing: false, scales: { x: { type: "linear", min: viewStart, max: viewEnd, ticks: { callback: (value: string | number) => shortTime(Number(value)) } }, y: { min: -1, max: 1 } }, plugins: { tooltip: { callbacks: { title: (items: any[]) => items.length ? formatTime(items[0].parsed.x) : "" } } } } as any;
+  const affectOptions = { ...linearTimeOptions, onClick: (_event: unknown, elements: Array<{ datasetIndex: number; index: number }>, chart: any) => {
+    const element = elements[0];
+    if (!element) return;
+    const point = chart.data.datasets[element.datasetIndex]?.data?.[element.index] as { x?: unknown } | undefined;
+    const selectedTime = point?.x;
+    if (typeof selectedTime !== "number") return;
+    setCursor(selectedTime);
+    setAffectWindow((current) => current === null ? { startMs: selectedTime, endMs: selectedTime } : normalizedWindow(current.startMs, selectedTime));
+  } } as any;
   const aoiData = { datasets: [{ label: "AOI sample", data: gaze.map((sample) => ({ x: sample.timeMs, y: aoiIndex(sample.aoi_type), aoi: sample.aoi_type, id: sample.aoi_id })), borderColor: "#7c3aed", backgroundColor: "#7c3aed", stepped: true, pointRadius: gaze.length > 1500 ? 0 : 2, showLine: true, spanGaps: 2_000 }, { label: "Selected time", data: [{ x: cursor, y: 0 }, { x: cursor, y: aoiLabels.length - 1 }], borderColor: "#111827", borderDash: [4, 4], pointRadius: 0 } ] } as any;
   const aoiOptions = { ...linearTimeOptions, scales: { x: linearTimeOptions.scales.x, y: { min: 0, max: aoiLabels.length - 1, ticks: { callback: (value: string | number) => aoiLabels[Number(value)] ?? "" } } }, plugins: { tooltip: { callbacks: { title: (items: any[]) => items.length ? formatTime(items[0].parsed.x) : "", label: (item: any) => `${item.raw.aoi ?? "selected"}${item.raw.id ? ` · ${item.raw.id}` : ""}` } } } } as any;
   const circumplexData = { datasets: [
@@ -120,7 +134,7 @@ export default function ResearchDashboard({ researcherKey, session }: { research
   return <section style={{ display: "grid", gap: 16, marginTop: 24 }}>
     <div style={panel}><strong>Session:</strong> <code>{session.session_id}</code><p style={{ margin: "8px 0" }}>Cursor: {formatTime(cursor)} · HSEmotion: {affect.length} observations · SAMM: {samm.length} responses · Gaze: {gaze.length} samples · Calibrations: {data.calibrations.length}</p><div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}><button className="counter" style={{ margin: 0 }} onClick={() => setCursor(visibleEvents.filter((event) => event.timeMs < cursor).at(-1)?.timeMs ?? start)}>Previous event</button><button className="counter" style={{ margin: 0 }} onClick={() => setCursor(visibleEvents.find((event) => event.timeMs > cursor)?.timeMs ?? end)}>Next event</button><label>Chart zoom <select value={zoomWindowMs ?? "all"} onChange={(event) => setZoomWindowMs(event.target.value === "all" ? null : Number(event.target.value))}><option value="all">Full session</option><option value={60_000}>1 minute around cursor</option><option value={300_000}>5 minutes around cursor</option></select></label></div><input aria-label="Session time" type="range" min={start} max={end} step={Math.max(1, Math.round((end - start) / 2000))} value={cursor} onChange={(event) => setCursor(Number(event.target.value))} style={{ width: "100%", marginTop: 14 }} /></div>
 
-    <div style={panel}><h2>Affect trajectory</h2><p>HSEmotion observations are connected only across short recorded gaps; SAMM is shown as discrete self-report points.</p><div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>{([['hValence','HSE valence'], ['hArousal','HSE arousal'], ['sValence','SAMM valence'], ['sArousal','SAMM arousal']] as const).map(([key, label]) => <label key={key}><input type="checkbox" checked={series[key]} onChange={() => setSeries((current) => ({ ...current, [key]: !current[key] }))} /> {label}</label>)}</div><div style={{ height: 300 }}><Line data={affectChartData} options={linearTimeOptions} /></div></div>
+    <div style={panel}><h2>Affect trajectory</h2><p>HSEmotion observations are connected only across short recorded gaps; SAMM is shown as discrete self-report points. Click two observed points to select an affect-centered interval.</p><div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>{([['hValence','HSE valence'], ['hArousal','HSE arousal'], ['sValence','SAMM valence'], ['sArousal','SAMM arousal']] as const).map(([key, label]) => <label key={key}><input type="checkbox" checked={series[key]} onChange={() => setSeries((current) => ({ ...current, [key]: !current[key] }))} /> {label}</label>)}</div><div style={{ height: 300 }}><Line data={affectChartData} options={affectOptions} /></div></div>
 
     <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) minmax(320px, 1fr)", gap: 16 }}><div style={panel}><h2>Learning-centered affect circumplex</h2><p>Reference centroids are exploratory conceptual placements inspired by Baker et al. (2010), not emotion classifications or confidence estimates.</p><label>Conceptual proximity radius <select value={radius} onChange={(event) => setRadius(Number(event.target.value))}>{[0.05, 0.1, 0.15].map((value) => <option value={value} key={value}>{value.toFixed(2)}</option>)}</select></label><div style={{ height: 300 }}><Line data={circumplexData} options={circumplexOptions} /></div><p>{currentPoint ? `${currentPoint.label} at (${currentPoint.valence.toFixed(2)}, ${currentPoint.arousal.toFixed(2)}).` : "No affect observation at or before this time."}</p><p>Within selected radius: {nearestCentroids.length ? nearestCentroids.map((item) => `${item.name} (${item.distance.toFixed(3)})`).join(", ") : "none"}</p><details><summary>Reference centroid coordinates</summary><ul>{AFFECT_CENTROIDS.map((item) => <li key={item.name}>{item.name}: ({item.valence.toFixed(2)}, {item.arousal.toFixed(2)})</li>)}</ul></details></div><div style={panel}><h2>Current-time observations</h2><p><strong>Gaze AOI:</strong> {currentGazeIsContiguous && currentGaze ? `${currentGaze.aoi_type}${currentGaze.aoi_id ? ` · ${currentGaze.aoi_id}` : ""}` : currentGaze ? `Measurement gap (last sample ${formatTime(currentGaze.timeMs)})` : "No recorded gaze observation"}</p><p><strong>SAMM:</strong> {currentSamm ? `Latest response: V ${currentSamm.valence}, A ${currentSamm.arousal}, D ${currentSamm.dominance}` : "No response at or before cursor"}</p><p><strong>HSEmotion:</strong> {currentAffectIsContiguous && currentAffect ? `V ${currentAffect.valence}, A ${currentAffect.arousal}` : currentAffect ? `Measurement gap (last observation ${formatTime(currentAffect.timeMs)})` : "No observation at or before cursor"}</p><p>Absent modalities are shown as missing; no values are interpolated or inferred.</p></div></div>
 
@@ -129,5 +143,7 @@ export default function ResearchDashboard({ researcherKey, session }: { research
     <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) minmax(320px, 1fr)", gap: 16 }}><div style={panel}><h2>Event timeline</h2><div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>{eventCategories.map((category) => <label key={category}><input type="checkbox" checked={filters[category] !== false} onChange={() => setFilters((current) => ({ ...current, [category]: current[category] === false }))} /> {category}</label>)}</div><div style={{ maxHeight: 360, overflow: "auto", marginTop: 10 }}>{visibleEvents.map((event) => <button key={event.id} onClick={() => { setCursor(event.timeMs); setSelectedEvent(event); }} style={{ display: "block", width: "100%", textAlign: "left", border: "1px solid #111827", background: selectedEvent?.id === event.id ? "#fde68a" : "#fff", padding: 8, marginBottom: 6, cursor: "pointer" }}><strong>{shortTime(event.timeMs)}</strong> · {event.category} · {event.label}{event.derived ? " (derived display marker)" : ""}</button>)}</div></div><div style={panel}><h2>Event detail</h2>{selectedEvent ? <><p><strong>{selectedEvent.label}</strong><br />{formatTime(selectedEvent.timeMs)}</p><pre style={{ whiteSpace: "pre-wrap", maxHeight: 280, overflow: "auto" }}>{JSON.stringify(selectedEvent.metadata, null, 2)}</pre></> : <p>Select an event to inspect its recorded metadata.</p>}<h3>Nearby events (±10 seconds)</h3><ul>{nearby(visibleEvents, cursor).map((event) => <li key={event.id}>{shortTime(event.timeMs)} · {event.label}</li>)}</ul></div></div>
 
     <div style={panel}><h2>Read-only workflow reconstruction</h2><p>Shows the most recent recorded snapshot at or before the cursor; never a future state.</p><ReadOnlyWorkflow workflow={workflow} /></div>
+
+    <ResearchAnalysis sessionId={session.session_id} setCursor={setCursor} selectedEvent={selectedEvent} setSelectedEvent={setSelectedEvent} events={visibleEvents} rawEvents={rawEvents} snapshots={snapshots} affect={affect} samm={samm} gaze={gaze} executions={executions} affectWindow={affectWindow} clearAffectWindow={() => setAffectWindow(null)} />
   </section>;
 }

@@ -61,11 +61,18 @@ export default function VideoStream() {
 
   useEffect(() => {
     const pause = () => stopCamera();
+    const resume = () => {
+      if (!useSessionStore.getState().ending && !useSessionStore.getState().ended && !isRecording.current) {
+        void startCamera();
+      }
+    };
     window.addEventListener("ml-tutor:shutdown-modalities", pause);
     window.addEventListener("ml-tutor:pause-video", pause);
+    window.addEventListener("ml-tutor:resume-video", resume);
     return () => {
       window.removeEventListener("ml-tutor:shutdown-modalities", pause);
       window.removeEventListener("ml-tutor:pause-video", pause);
+      window.removeEventListener("ml-tutor:resume-video", resume);
       stopCamera();
     };
   }, []);

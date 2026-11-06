@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from "react";
-import webgazer, { type GazeData } from "webgazer";
 import { queueGazeSample, saveCalibration } from "../services/gaze";
 import { classifyAoi, summarizeErrors } from "../services/aoi";
 import { getSessionContext } from "../store/sessionStore";
 import { releaseCamera } from "../services/cameraManager";
+import { loadWebGazer } from "../services/webgazerLoader";
+import type { GazeData, WebGazer } from "../types/webgazer";
 
 type Phase = "notice" | "calibrating" | "validating" | "review" | "ready" | "error";
 const calibrationPoints = [[10,10],[50,10],[90,10],[10,50],[50,50],[90,50],[10,90],[50,90],[90,90]];
@@ -24,14 +25,24 @@ export default function GazeCalibration({ onReady, onStopped }: Props) {
   const errors = useRef<number[]>([]);
   const lastStoredAt = useRef(0);
   const active = useRef(false);
+  const initializing = useRef(false);
+  const webgazerRef = useRef<WebGazer | null>(null);
   const phaseRef = useRef<Phase>("notice");
 
   const changePhase = (next: Phase) => { phaseRef.current = next; setPhase(next); };
 
+  const stopWebGazer = () => {
+    const instance = webgazerRef.current;
+    webgazerRef.current = null;
+    if (!instance) return;
+    try { instance.clearGazeListener(); } catch { /* initialization may have failed before a listener existed */ }
+    try { instance.stopVideo(); } catch { /* WebGazer may not have obtained a stream */ }
+    try { instance.end(); } catch { /* WebGazer may not have created its preview elements */ }
+  };
+
   const stop = () => {
     active.current = false;
-    webgazer.clearGazeListener();
-    webgazer.end();
+    stopWebGazer();
     onStopped();
   };
 
@@ -56,18 +67,31 @@ export default function GazeCalibration({ onReady, onStopped }: Props) {
   };
 
   const start = async () => {
+    if (initializing.current || active.current) return;
+    initializing.current = true;
     try {
       // WebGazer 3.5.3 has no supported external MediaStream API. Release the
       // shared MediaPipe track before it requests its one browser-owned stream.
       window.dispatchEvent(new Event("ml-tutor:pause-video"));
       releaseCamera();
+      const webgazer = await loadWebGazer();
+      webgazerRef.current = webgazer;
       await webgazer.clearData();
       webgazer.saveDataAcrossSessions(false).showVideoPreview(false).showFaceOverlay(false).showFaceFeedbackBox(false).showPredictionPoints(false).setGazeListener(listener);
-      await webgazer.begin();
+      // Avoid WebGazer's default "No stream" console callback. The catch
+      // below presents the single actionable application error instead.
+      await webgazer.begin(() => undefined);
       startedAt.current = new Date().toISOString();
       active.current = true;
       changePhase("calibrating"); setPointIndex(0); setClicks(0);
-    } catch (error) { console.error("WebGazer initialization failed", error); changePhase("error"); }
+    } catch (error) {
+      stopWebGazer();
+      window.dispatchEvent(new Event("ml-tutor:resume-video"));
+      console.error("WebGazer initialization failed", error);
+      changePhase("error");
+    } finally {
+      initializing.current = false;
+    }
   };
 
   const point = (phase === "calibrating" ? calibrationPoints : validationPoints)[pointIndex];
@@ -75,7 +99,7 @@ export default function GazeCalibration({ onReady, onStopped }: Props) {
   const handlePoint = async () => {
     if (!point) return;
     const x = window.innerWidth * point[0] / 100; const y = window.innerHeight * point[1] / 100;
-    webgazer.recordScreenPosition(x, y, "click");
+    webgazerRef.current?.recordScreenPosition(x, y, "click");
     if (phase === "validating" && latestGaze.current) errors.current.push(Math.hypot(latestGaze.current.x - x, latestGaze.current.y - y));
     if (phase === "calibrating" && clicks + 1 < CLICKS_PER_POINT) { setClicks(clicks + 1); return; }
     setClicks(0);

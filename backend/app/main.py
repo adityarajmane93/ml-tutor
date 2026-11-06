@@ -13,7 +13,7 @@ from app.db.db import engine
 
 # Import the new routers!
 from app.routes.pipeline import router as pipeline_router
-from app.routes import notes, consent, analytics, affect, streams, datasets, sessions, gaze
+from app.routes import notes, consent, analytics, affect, streams, datasets, sessions, gaze, research
 
 configure_logging()
 logger = logging.getLogger(__name__)
@@ -73,3 +73,4 @@ app.include_router(streams.router, prefix="/ws", tags=["WebSockets"])
 app.include_router(datasets.router, tags=["Datasets"])
 app.include_router(sessions.router, prefix="/sessions", tags=["Sessions"])
 app.include_router(gaze.router)
+app.include_router(research.router)

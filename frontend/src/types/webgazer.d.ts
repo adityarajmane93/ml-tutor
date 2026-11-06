@@ -13,7 +13,8 @@ export interface WebGazer {
   setGazeListener(listener: (data: GazeData, elapsedTime: number) => void): WebGazer;
   clearGazeListener(): WebGazer;
   recordScreenPosition(x: number, y: number, eventType?: string): WebGazer;
-  params: { faceMeshSolutionPath: string };
+  setStaticVideo(stream: MediaStream): WebGazer;
+  params: { faceMeshSolutionPath: string; videoElementId: string };
 }
 
 declare global {

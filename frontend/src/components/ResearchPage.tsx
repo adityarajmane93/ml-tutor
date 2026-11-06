@@ -1,14 +1,14 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import type { FormEvent } from "react";
 import {
-  getParticipants,
   getSessions,
   getStudies,
-  type ResearchParticipant,
   type ResearchSession,
   type ResearchStudy,
 } from "../services/researchApi";
 import ResearchDashboard from "./ResearchDashboard";
+import StudyManager from "./StudyManager";
+import { sessionDisplayLabel } from "../services/researchUiConfig";
 
 const UNASSIGNED = "__unassigned__";
 
@@ -20,21 +20,26 @@ function valueFromSelect(value: string): string | null {
   return value === UNASSIGNED ? null : value;
 }
 
-function identifierLabel(label: string, value: string | null): string {
-  return value === null ? `No ${label} recorded` : value;
+function studyLabel(study: ResearchStudy): string {
+  return `${study.name} (${study.study_id ?? "historical"})`;
 }
+
 
 export default function ResearchPage() {
   const [researcherKey, setResearcherKey] = useState("");
   const [authenticatedKey, setAuthenticatedKey] = useState<string | null>(null);
   const [studies, setStudies] = useState<ResearchStudy[]>([]);
-  const [participants, setParticipants] = useState<ResearchParticipant[]>([]);
   const [sessions, setSessions] = useState<ResearchSession[]>([]);
   const [studyId, setStudyId] = useState<string | null | undefined>(undefined);
-  const [participantId, setParticipantId] = useState<string | null | undefined>(undefined);
   const [selectedSession, setSelectedSession] = useState<ResearchSession | null>(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
+  const refreshStudies = useCallback(async () => {
+    if (!authenticatedKey) return;
+    const response = await getStudies(authenticatedKey);
+    setStudies(response.items);
+  }, [authenticatedKey]);
 
   const authenticate = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -42,8 +47,8 @@ export default function ResearchPage() {
     setLoading(true);
     setError("");
     try {
-      const response = await getStudies(researcherKey);
       setAuthenticatedKey(researcherKey);
+      const response = await getStudies(researcherKey);
       setStudies(response.items);
       setStudyId(undefined);
     } catch (reason) {
@@ -56,23 +61,18 @@ export default function ResearchPage() {
 
   useEffect(() => {
     if (!authenticatedKey || studyId === undefined) return;
-    setParticipants([]);
-    setParticipantId(undefined);
     setSessions([]);
     setSelectedSession(null);
-    void getParticipants(authenticatedKey, studyId)
-      .then((response) => setParticipants(response.items))
-      .catch((reason) => setError(reason instanceof Error ? reason.message : "Research data could not be loaded."));
   }, [authenticatedKey, studyId]);
 
   useEffect(() => {
-    if (!authenticatedKey || studyId === undefined || participantId === undefined) return;
+    if (!authenticatedKey || studyId === undefined) return;
     setSessions([]);
     setSelectedSession(null);
-    void getSessions(authenticatedKey, studyId, participantId)
+    void getSessions(authenticatedKey, studyId)
       .then((response) => setSessions(response.items))
       .catch((reason) => setError(reason instanceof Error ? reason.message : "Research data could not be loaded."));
-  }, [authenticatedKey, studyId, participantId]);
+  }, [authenticatedKey, studyId]);
 
   if (!authenticatedKey) {
     return (
@@ -92,12 +92,12 @@ export default function ResearchPage() {
   return (
     <main style={{ maxWidth: 960, margin: "32px auto", padding: 24, textAlign: "left" }}>
       <h1>Research sessions</h1>
-      <p>Select the recorded study, participant, and session to inspect its timestamped multimodal record.</p>
+      <p>Select a study and session to inspect its timestamped multimodal record.</p>
       {error && <p role="alert" style={{ color: "#b91c1c" }}>{error}</p>}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 16 }}>
-        <label>Study<select value={studyId === undefined ? "" : valueForSelect(studyId)} onChange={(event) => setStudyId(valueFromSelect(event.target.value))} style={{ display: "block", width: "100%" }}><option value="" disabled>Select a study</option>{studies.map((study) => <option key={valueForSelect(study.study_id)} value={valueForSelect(study.study_id)}>{identifierLabel("study ID", study.study_id)} ({study.session_count})</option>)}</select></label>
-        <label>Participant<select disabled={studyId === undefined} value={participantId === undefined ? "" : valueForSelect(participantId)} onChange={(event) => setParticipantId(valueFromSelect(event.target.value))} style={{ display: "block", width: "100%" }}><option value="" disabled>Select a participant</option>{participants.map((participant) => <option key={valueForSelect(participant.participant_id)} value={valueForSelect(participant.participant_id)}>{identifierLabel("participant ID", participant.participant_id)} ({participant.session_count})</option>)}</select></label>
-        <label>Session<select disabled={participantId === undefined} value={selectedSession?.session_id ?? ""} onChange={(event) => setSelectedSession(sessions.find((session) => session.session_id === event.target.value) ?? null)} style={{ display: "block", width: "100%" }}><option value="" disabled>Select a session</option>{sessions.map((session) => <option key={session.session_id} value={session.session_id}>{session.session_id}</option>)}</select></label>
+      <StudyManager researcherKey={authenticatedKey} studies={studies} onChanged={refreshStudies} />
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 16 }}>
+        <label>Study<select value={studyId === undefined ? "" : valueForSelect(studyId)} onChange={(event) => setStudyId(valueFromSelect(event.target.value))} style={{ display: "block", width: "100%" }}><option value="" disabled>Select a study</option>{studies.map((study) => <option key={valueForSelect(study.study_id)} value={valueForSelect(study.study_id)}>{studyLabel(study)} · {study.session_count} sessions</option>)}</select></label>
+        <label>Session<select disabled={studyId === undefined} value={selectedSession?.session_id ?? ""} onChange={(event) => setSelectedSession(sessions.find((session) => session.session_id === event.target.value) ?? null)} style={{ display: "block", width: "100%" }}><option value="" disabled>Select a session</option>{sessions.map((session, index) => <option key={session.session_id} value={session.session_id}>{sessionDisplayLabel(session, index)}</option>)}</select></label>
       </div>
       {selectedSession && <ResearchDashboard researcherKey={authenticatedKey} session={selectedSession} />}
     </main>

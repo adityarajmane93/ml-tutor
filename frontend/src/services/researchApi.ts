@@ -1,4 +1,4 @@
-export type ResearchStudy = { study_id: string | null; session_count: number };
+export type ResearchStudy = { study_id: string | null; name: string; description: string | null; status: string; created_at: string | null; started_at: string | null; stopped_at: string | null; session_count: number; system_default: boolean };
 export type ResearchParticipant = { participant_id: string | null; session_count: number };
 export type ResearchSession = {
   session_id: string;
@@ -21,9 +21,10 @@ export type GazeCalibration = { calibration_id: string; session_id: string; star
 
 export type ResearchSessionData = { events: ResearchEvent[]; snapshots: WorkflowSnapshot[]; affect: AffectObservation[]; samm: SammObservation[]; gaze: GazeSample[]; executions: PipelineExecution[]; calibrations: GazeCalibration[] };
 
-async function researchRequest<T>(path: string, researcherKey: string): Promise<T> {
+async function researchRequest<T>(path: string, researcherKey: string, init: RequestInit = {}): Promise<T> {
   const response = await fetch(`${import.meta.env.VITE_API_URL}${path}`, {
-    headers: { "X-Researcher-Key": researcherKey },
+    ...init,
+    headers: { "X-Researcher-Key": researcherKey, ...(init.headers ?? {}), ...(init.body ? { "Content-Type": "application/json" } : {}) },
   });
   if (!response.ok) {
     throw new Error(response.status === 401 ? "Researcher authentication failed." : "Research data could not be loaded.");
@@ -39,6 +40,18 @@ export function getStudies(researcherKey: string): Promise<{ items: ResearchStud
   return researchRequest("/research/studies", researcherKey);
 }
 
+export function createStudy(researcherKey: string, name: string, description: string): Promise<{ item: ResearchStudy }> {
+  return researchRequest("/research/studies", researcherKey, { method: "POST", body: JSON.stringify({ name, description: description || null }) });
+}
+
+export function startStudy(researcherKey: string, studyId: string): Promise<{ item: ResearchStudy }> {
+  return researchRequest(`/research/studies/${encodeURIComponent(studyId)}/start`, researcherKey, { method: "POST" });
+}
+
+export function stopStudy(researcherKey: string, studyId: string): Promise<{ item: ResearchStudy }> {
+  return researchRequest(`/research/studies/${encodeURIComponent(studyId)}/stop`, researcherKey, { method: "POST" });
+}
+
 export function getParticipants(researcherKey: string, studyId: string | null): Promise<{ items: ResearchParticipant[] }> {
   return researchRequest(`/research/participants?${nullableScope("study_id", "unassigned_study", studyId)}`, researcherKey);
 }
@@ -46,10 +59,9 @@ export function getParticipants(researcherKey: string, studyId: string | null): 
 export function getSessions(
   researcherKey: string,
   studyId: string | null,
-  participantId: string | null,
 ): Promise<Page<ResearchSession>> {
   return researchRequest(
-    `/research/sessions?${nullableScope("study_id", "unassigned_study", studyId)}&${nullableScope("participant_id", "unassigned_participant", participantId)}`,
+    `/research/sessions?${nullableScope("study_id", "unassigned_study", studyId)}`,
     researcherKey,
   );
 }

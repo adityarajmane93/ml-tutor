@@ -12,6 +12,7 @@ import {
   timelineBounds, withObservationTimes, workflowAt, type TimelineEvent,
 } from "../services/researchTimeline";
 import { normalizedWindow, type TimeWindow } from "../services/researchAnalysis";
+import { AFFECT_SERIES_COLORS, WORKFLOW_RECONSTRUCTION_DEFAULT_EXPANDED } from "../services/researchUiConfig";
 
 ChartJS.register(LinearScale, LineElement, PointElement, Tooltip, Legend);
 
@@ -58,10 +59,11 @@ export default function ResearchDashboard({ researcherKey, session }: { research
   const [showVisits, setShowVisits] = useState(false);
   const [zoomWindowMs, setZoomWindowMs] = useState<number | null>(null);
   const [affectWindow, setAffectWindow] = useState<TimeWindow | null>(null);
+  const [workflowExpanded, setWorkflowExpanded] = useState(WORKFLOW_RECONSTRUCTION_DEFAULT_EXPANDED);
 
   useEffect(() => {
     let active = true;
-    setLoading(true); setError(""); setData(null); setCursor(null); setSelectedEvent(null); setZoomWindowMs(null); setAffectWindow(null);
+    setLoading(true); setError(""); setData(null); setCursor(null); setSelectedEvent(null); setZoomWindowMs(null); setAffectWindow(null); setWorkflowExpanded(WORKFLOW_RECONSTRUCTION_DEFAULT_EXPANDED);
     void getResearchSessionData(researcherKey, session.session_id).then((next) => {
       if (!active) return;
       const times = [
@@ -104,10 +106,10 @@ export default function ResearchDashboard({ researcherKey, session }: { research
   const currentPoint = currentAffectIsContiguous && currentAffect ? { valence: currentAffect.valence, arousal: currentAffect.arousal, label: "HSEmotion" } : currentSamm ? { valence: currentSamm.valence, arousal: currentSamm.arousal, label: "SAMM" } : null;
   const affectChartData = {
     datasets: [
-      series.hValence && { label: "HSEmotion valence", data: affect.map((point) => ({ x: point.timeMs, y: point.valence })), borderColor: "#2563eb", pointRadius: 1, spanGaps: 15_000 },
-      series.hArousal && { label: "HSEmotion arousal", data: affect.map((point) => ({ x: point.timeMs, y: point.arousal })), borderColor: "#dc2626", pointRadius: 1, spanGaps: 15_000 },
-      series.sValence && { label: "SAMM valence", data: samm.map((point) => ({ x: point.timeMs, y: point.valence })), borderColor: "#1d4ed8", pointRadius: 5, showLine: false },
-      series.sArousal && { label: "SAMM arousal", data: samm.map((point) => ({ x: point.timeMs, y: point.arousal })), borderColor: "#991b1b", pointRadius: 5, showLine: false },
+      series.hValence && { label: "HSEmotion valence", data: affect.map((point) => ({ x: point.timeMs, y: point.valence })), borderColor: AFFECT_SERIES_COLORS.hseValence, pointRadius: 1, spanGaps: 15_000 },
+      series.hArousal && { label: "HSEmotion arousal", data: affect.map((point) => ({ x: point.timeMs, y: point.arousal })), borderColor: AFFECT_SERIES_COLORS.hseArousal, pointRadius: 1, spanGaps: 15_000 },
+      series.sValence && { label: "SAMM valence (discrete)", data: samm.map((point) => ({ x: point.timeMs, y: point.valence })), borderColor: AFFECT_SERIES_COLORS.sammValence, backgroundColor: AFFECT_SERIES_COLORS.sammValence, pointRadius: 6, pointStyle: "rectRot", showLine: false },
+      series.sArousal && { label: "SAMM arousal (discrete)", data: samm.map((point) => ({ x: point.timeMs, y: point.arousal })), borderColor: AFFECT_SERIES_COLORS.sammArousal, backgroundColor: AFFECT_SERIES_COLORS.sammArousal, pointRadius: 5, pointStyle: "circle", showLine: false },
       { label: "Selected time", data: [{ x: cursor, y: -1 }, { x: cursor, y: 1 }], borderColor: "#111827", borderDash: [4, 4], pointRadius: 0 },
     ].filter(Boolean),
   } as any;
@@ -126,7 +128,7 @@ export default function ResearchDashboard({ researcherKey, session }: { research
   const circumplexData = { datasets: [
     { label: "Conceptual reference centroids", data: AFFECT_CENTROIDS.map((centroid) => ({ x: centroid.valence, y: centroid.arousal })), backgroundColor: "#9ca3af", pointRadius: 5, showLine: false },
     currentAffectIsContiguous && currentAffect && { label: "Current HSEmotion", data: [{ x: currentAffect.valence, y: currentAffect.arousal }], backgroundColor: "#dc2626", pointRadius: 7, showLine: false },
-    currentSamm && { label: "Latest SAMM", data: [{ x: currentSamm.valence, y: currentSamm.arousal }], backgroundColor: "#2563eb", pointRadius: 7, showLine: false },
+    currentSamm && { label: "Latest SAMM", data: [{ x: currentSamm.valence, y: currentSamm.arousal }], backgroundColor: "#0891b2", pointRadius: 7, pointStyle: "rectRot", showLine: false },
   ].filter(Boolean) } as any;
   const circumplexOptions = { responsive: true, maintainAspectRatio: false, animation: false, parsing: false, scales: { x: { type: "linear", min: -1, max: 1, title: { display: true, text: "Valence" } }, y: { min: -1, max: 1, title: { display: true, text: "Arousal" } } }, plugins: { tooltip: { callbacks: { label: (item: any) => `${item.dataset.label}: (${item.parsed.x.toFixed(2)}, ${item.parsed.y.toFixed(2)})` } } } } as any;
   const nearestCentroids = currentPoint ? AFFECT_CENTROIDS.map((centroid) => ({ ...centroid, distance: euclideanDistance(currentPoint.valence, currentPoint.arousal, centroid) })).filter((centroid) => centroid.distance <= radius) : [];
@@ -142,7 +144,7 @@ export default function ResearchDashboard({ researcherKey, session }: { research
 
     <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) minmax(320px, 1fr)", gap: 16 }}><div style={panel}><h2>Event timeline</h2><div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>{eventCategories.map((category) => <label key={category}><input type="checkbox" checked={filters[category] !== false} onChange={() => setFilters((current) => ({ ...current, [category]: current[category] === false }))} /> {category}</label>)}</div><div style={{ maxHeight: 360, overflow: "auto", marginTop: 10 }}>{visibleEvents.map((event) => <button key={event.id} onClick={() => { setCursor(event.timeMs); setSelectedEvent(event); }} style={{ display: "block", width: "100%", textAlign: "left", border: "1px solid #111827", background: selectedEvent?.id === event.id ? "#fde68a" : "#fff", padding: 8, marginBottom: 6, cursor: "pointer" }}><strong>{shortTime(event.timeMs)}</strong> · {event.category} · {event.label}{event.derived ? " (derived display marker)" : ""}</button>)}</div></div><div style={panel}><h2>Event detail</h2>{selectedEvent ? <><p><strong>{selectedEvent.label}</strong><br />{formatTime(selectedEvent.timeMs)}</p><pre style={{ whiteSpace: "pre-wrap", maxHeight: 280, overflow: "auto" }}>{JSON.stringify(selectedEvent.metadata, null, 2)}</pre></> : <p>Select an event to inspect its recorded metadata.</p>}<h3>Nearby events (±10 seconds)</h3><ul>{nearby(visibleEvents, cursor).map((event) => <li key={event.id}>{shortTime(event.timeMs)} · {event.label}</li>)}</ul></div></div>
 
-    <div style={panel}><h2>Read-only workflow reconstruction</h2><p>Shows the most recent recorded snapshot at or before the cursor; never a future state.</p><ReadOnlyWorkflow workflow={workflow} /></div>
+    <div style={panel}><button type="button" aria-expanded={workflowExpanded} className="counter" style={{ margin: 0, width: "100%", textAlign: "left" }} onClick={() => setWorkflowExpanded((expanded) => !expanded)}>{workflowExpanded ? "⌄" : "›"} Workflow Reconstruction</button>{workflowExpanded && <><p>Shows the most recent recorded snapshot at or before the cursor; never a future state.</p><ReadOnlyWorkflow workflow={workflow} /></>}</div>
 
     <ResearchAnalysis sessionId={session.session_id} setCursor={setCursor} selectedEvent={selectedEvent} setSelectedEvent={setSelectedEvent} events={visibleEvents} rawEvents={rawEvents} snapshots={snapshots} affect={affect} samm={samm} gaze={gaze} executions={executions} affectWindow={affectWindow} clearAffectWindow={() => setAffectWindow(null)} />
   </section>;

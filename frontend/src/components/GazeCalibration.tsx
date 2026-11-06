@@ -5,7 +5,7 @@ import { classifyAoi, summarizeErrors } from "../services/aoi";
 import { getSessionContext } from "../store/sessionStore";
 import { releaseCamera } from "../services/cameraManager";
 
-type Phase = "notice" | "calibrating" | "validating" | "ready" | "error";
+type Phase = "notice" | "calibrating" | "validating" | "review" | "ready" | "error";
 const calibrationPoints = [[10,10],[50,10],[90,10],[10,50],[50,50],[90,50],[10,90],[50,90],[90,90]];
 const validationPoints = [[25,25],[75,25],[50,50],[25,75],[75,75]];
 const CLICKS_PER_POINT = 3;
@@ -87,6 +87,7 @@ export default function GazeCalibration({ onReady, onStopped }: Props) {
     const quality = summary.median === null ? "insufficient_validation" : summary.median <= 150 ? "acceptable" : "low";
     const saved = await saveCalibration({ calibration_id: calibrationId.current, session_id: getSessionContext().sessionId, started_at: startedAt.current, completed_at: new Date().toISOString(), viewport_width: window.innerWidth, viewport_height: window.innerHeight, calibration_metadata: { points: calibrationPoints, clicks_per_point: CLICKS_PER_POINT, implementation: "webgazer@3.5.3" }, validation_metadata: { points: validationPoints, errors_px: errors.current }, median_error_px: summary.median, mean_error_px: summary.mean, quality_status: quality });
     if (!saved) { changePhase("error"); return; }
+    if (quality === "low" || quality === "insufficient_validation") { changePhase("review"); return; }
     changePhase("ready"); onReady();
   };
 
@@ -95,6 +96,7 @@ export default function GazeCalibration({ onReady, onStopped }: Props) {
     {phase === "notice" && <div style={{ maxWidth: 560, textAlign: "center" }}><h2>Eye-tracking notice</h2><p>Approximate gaze coordinates will be recorded in this browser during this session. No webcam video is sent to the server.</p><button className="neo-btn" onClick={() => void start()}>Start calibration</button></div>}
     {(phase === "calibrating" || phase === "validating") && <><p style={{ position: "fixed", top: 24 }}> {phase === "calibrating" ? `Calibration ${pointIndex + 1}/9 — click each point ${CLICKS_PER_POINT} times` : `Validation ${pointIndex + 1}/5 — look at and click each point`} </p><button aria-label="Calibration target" onClick={() => void handlePoint()} style={{ position: "fixed", transform: "translate(-50%, -50%)", width: 34, height: 34, borderRadius: "50%", border: "4px solid #111827", background: "#fbbf24", cursor: "pointer", ...pointStyle }} /></>}
     {phase === "error" && <div style={{ textAlign: "center" }}><h2>Eye tracking could not be started</h2><p>Check camera permission and retry. No gaze collection is active.</p><button className="neo-btn" onClick={() => { calibrationId.current = crypto.randomUUID(); errors.current = []; changePhase("notice"); }}>Retry calibration</button></div>}
+    {phase === "review" && <div style={{ textAlign: "center", maxWidth: 560 }}><h2>Calibration quality is low</h2><p>Median validation error: {errorSummary.median === null ? "unavailable" : `${Math.round(errorSummary.median)} px`}. Recalibration is recommended; this is not research-grade accuracy evidence.</p><div style={{ display: "flex", justifyContent: "center", gap: 12 }}><button className="neo-btn" onClick={() => { stop(); calibrationId.current = crypto.randomUUID(); errors.current = []; changePhase("notice"); }}>Recalibrate</button><button className="neo-btn" onClick={() => { changePhase("ready"); onReady(); }}>Continue with low quality</button></div></div>}
     {errorSummary.median !== null && <span>Median validation error: {Math.round(errorSummary.median)} px</span>}
   </div>;
 }

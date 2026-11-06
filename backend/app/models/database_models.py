@@ -89,6 +89,17 @@ class StudySessionModel(Base):
     server_ended_at = Column(String, index=True, nullable=True)
 
 
+class StudyModel(Base):
+    __tablename__ = "studies"
+    study_id = Column(String, primary_key=True)
+    name = Column(String, nullable=False)
+    description = Column(String, nullable=True)
+    status = Column(String, index=True, nullable=False)
+    created_at = Column(String, index=True, nullable=False)
+    started_at = Column(String, index=True, nullable=True)
+    stopped_at = Column(String, index=True, nullable=True)
+
+
 class PipelineExecutionModel(Base):
     __tablename__ = "pipeline_executions"
 

@@ -19,3 +19,20 @@ not use this credential.
 For production, ensure `CORS_ALLOWED_ORIGINS` includes the Vercel frontend
 origin. `frontend/vercel.json` already rewrites `/research` to the SPA entry
 point, so direct navigation and refresh resolve to the route.
+
+## Study management migration
+
+Study management requires Alembic revision `20261107_05`. With the target
+Neon `DATABASE_URL` supplied only in the backend environment, review the
+current revision and apply it deliberately:
+
+```bash
+cd backend
+alembic current
+alembic upgrade 20261107_05
+```
+
+The migration is additive. It creates the `studies` table, enforces one active
+formal study in PostgreSQL, and inserts the permanent `0000` Testing /
+Development study idempotently. It does not modify historical sessions with a
+NULL study ID.

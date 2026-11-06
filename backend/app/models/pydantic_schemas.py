@@ -112,3 +112,8 @@ class GazeCalibrationPayload(BaseModel):
     median_error_px: Optional[float] = Field(default=None, ge=0)
     mean_error_px: Optional[float] = Field(default=None, ge=0)
     quality_status: str = Field(max_length=64)
+
+
+class StudyCreatePayload(BaseModel):
+    name: str = Field(min_length=1, max_length=200)
+    description: Optional[str] = Field(default=None, max_length=2000)

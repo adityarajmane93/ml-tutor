@@ -8,6 +8,7 @@ from sqlalchemy.exc import IntegrityError
 from app.db.db import SessionLocal
 from app.models.database_models import StudySessionModel
 from app.models.pydantic_schemas import SessionEndPayload, SessionStartPayload
+from app.services.studies import study_for_new_session
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -27,11 +28,12 @@ def _start_session(payload: SessionStartPayload) -> dict:
                 "session_id": existing.session_id,
                 "server_started_at": existing.server_started_at,
                 "server_ended_at": existing.server_ended_at,
+                "study_id": existing.study_id,
             }
 
         session = StudySessionModel(
             session_id=payload.session_id,
-            study_id=None,
+            study_id=study_for_new_session(db),
             participant_id=None,
             client_started_at=payload.client_started_at,
             server_started_at=_utc_now(),
@@ -43,6 +45,7 @@ def _start_session(payload: SessionStartPayload) -> dict:
             "session_id": session.session_id,
             "server_started_at": session.server_started_at,
             "server_ended_at": None,
+            "study_id": session.study_id,
         }
     except IntegrityError:
         # Concurrent start attempts for the same UUID are idempotent.
@@ -54,6 +57,7 @@ def _start_session(payload: SessionStartPayload) -> dict:
                 "session_id": existing.session_id,
                 "server_started_at": existing.server_started_at,
                 "server_ended_at": existing.server_ended_at,
+                "study_id": existing.study_id,
             }
         logger.exception("session_start_conflict session_id=%s", payload.session_id)
         raise HTTPException(status_code=409, detail="Unable to start session")

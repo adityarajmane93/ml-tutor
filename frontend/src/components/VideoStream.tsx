@@ -1,6 +1,7 @@
 import  { useEffect, useRef, useState } from "react";
 import { FaceDetector, FilesetResolver, type Detection } from "@mediapipe/tasks-vision";
-import { getStudySessionContext, useSessionStore } from '../store/sessionStore';
+import { useSessionStore } from '../store/sessionStore';
+import { acquireCamera, releaseCamera } from "../services/cameraManager";
 import { devLog }
   from "../flow/logger"
 
@@ -16,8 +17,10 @@ export default function VideoStream() {
   const reconnectTimerRef = useRef<number | null>(null);
   const rppgCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const latestFaceRef = useRef<Detection | null>(null);
+  const affectInFlightRef = useRef(false);
   const [cameraError, setCameraError] = useState(false);
   const ENABLE_BACKEND = true;
+  const ending = useSessionStore((state) => state.ending || state.ended);
   
 
   useEffect(() => {
@@ -44,6 +47,27 @@ export default function VideoStream() {
     initializeMediaPipe();
 
     return () => { active = false; };
+  }, []);
+
+  const stopCamera = () => {
+    isRecording.current = false;
+    shouldReconnectRppgRef.current = false;
+    if (reconnectTimerRef.current) window.clearTimeout(reconnectTimerRef.current);
+    rppgWsRef.current?.close(1000, "session ended");
+    rppgWsRef.current = null;
+    releaseCamera();
+    if (videoRef.current) videoRef.current.srcObject = null;
+  };
+
+  useEffect(() => {
+    const pause = () => stopCamera();
+    window.addEventListener("ml-tutor:shutdown-modalities", pause);
+    window.addEventListener("ml-tutor:pause-video", pause);
+    return () => {
+      window.removeEventListener("ml-tutor:shutdown-modalities", pause);
+      window.removeEventListener("ml-tutor:pause-video", pause);
+      stopCamera();
+    };
   }, []);
 
   const baseUrl = import.meta.env.VITE_API_URL; // || "http://localhost:8000"
@@ -101,14 +125,15 @@ export default function VideoStream() {
 
   // AUTO-START CAMERA when the detector is ready
   useEffect(() => {
-    if (detector && !isRecording.current) {
+    if (detector && !isRecording.current && !ending) {
       startCamera();
     }
-  }, [detector]);
+  }, [detector, ending]);
 
   const startCamera = async () => {
+    if (ending) return;
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+      const stream = await acquireCamera();
       shouldReconnectRppgRef.current = true;
       setCameraError(false);
       if(ENABLE_BACKEND){
@@ -133,7 +158,7 @@ export default function VideoStream() {
             rppgWsRef.current.close();
           }
 
-          stream.getTracks().forEach((t) => t.stop());
+          releaseCamera();
           if (videoRef.current) {
             videoRef.current.srcObject = null;
           }
@@ -180,7 +205,7 @@ export default function VideoStream() {
 
 const processVideoLoop = async () => {
     //If the camera was turned off, permanently kill this loop instance
-    if (!isRecording.current) return;
+    if (!isRecording.current || useSessionStore.getState().ending || useSessionStore.getState().ended) return;
 
     if (!videoRef.current || videoRef.current.videoWidth === 0) {
       setTimeout(processVideoLoop, 100); 
@@ -197,7 +222,7 @@ const processVideoLoop = async () => {
       
       const isEngaged = checkEngagement(face);
 
-      if (isEngaged && canvasRef.current && face.boundingBox) {
+      if (isEngaged && canvasRef.current && face.boundingBox && !affectInFlightRef.current) {
         const { originX, originY, width, height } = face.boundingBox;
 
         const canvas = canvasRef.current;
@@ -231,17 +256,15 @@ const processVideoLoop = async () => {
           const timestamp = Math.floor(Date.now() / 1000); 
           formData.append("file", blob, `${timestamp}_face.jpg`); 
           formData.append("session_id", sessionIdRef.current);
-          const context = getStudySessionContext();
-          formData.append("study_id", context.studyId);
-          formData.append("participant_id", context.participantId);
           formData.append("client_timestamp", new Date().toISOString());
 
           try {
             if (ENABLE_BACKEND){
-              fetch(`${import.meta.env.VITE_API_URL}/predict_valenceArousal`, {
+              affectInFlightRef.current = true;
+              void fetch(`${import.meta.env.VITE_API_URL}/predict_valenceArousal`, {
                 method: "POST",
                 body: formData,
-              });
+              }).finally(() => { affectInFlightRef.current = false; });
               devLog("Face detected, sent to backend.");
             }
           } catch (error) {
@@ -257,7 +280,7 @@ const processVideoLoop = async () => {
 
   const processRppgLoop = async () => {
     //If the camera was turned off, permanently kill this loop instance
-    if (!isRecording.current) return;
+    if (!isRecording.current || useSessionStore.getState().ending || useSessionStore.getState().ended) return;
 
     if (!videoRef.current || !detector || videoRef.current.videoWidth === 0) {
       setTimeout(processRppgLoop, 33);
@@ -320,8 +343,6 @@ const processVideoLoop = async () => {
             rppgWsRef.current.send(
               JSON.stringify({
                 session_id: sessionIdRef.current,
-                study_id: getStudySessionContext().studyId,
-                participant_id: getStudySessionContext().participantId,
                 timestamp: Date.now() / 1000,
                 client_timestamp: new Date().toISOString(),
                 r: rgb.r,

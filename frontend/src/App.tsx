@@ -17,6 +17,7 @@ import { useSessionStore } from './store/sessionStore';
 function AppContent() {
   const navigate = useNavigate();
   const startSession = useSessionStore((state) => state.startSession);
+  const sessionEnded = useSessionStore((state) => state.ended);
 
   useEffect(() => {
     void startSession();
@@ -27,6 +28,10 @@ function AppContent() {
   const [cameraReady, setCameraReady] = useState(false);
   const [instructionsViewed, setInstructionsViewed] = useState(false);
   const [problemViewed, setProblemViewed] = useState(false);
+
+  if (sessionEnded) {
+    return <div style={{ minHeight: "100vh", display: "grid", placeItems: "center", textAlign: "center" }}><div><h1>Session Completed</h1><p>Thank you for participating.</p></div></div>;
+  }
 
   return (
     <div style={{ width: '98%',padding: "0.5rem", textAlign: "center", margin: "0 auto" }}>

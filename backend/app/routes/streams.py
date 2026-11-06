@@ -45,8 +45,6 @@ async def rppg_websocket(websocket: WebSocket):
                 raw_data = await websocket.receive_text()
                 data = json.loads(raw_data)
                 session_id = data.get("session_id")
-                study_id = data.get("study_id")
-                participant_id = data.get("participant_id")
                 client_timestamp = str(data.get("client_timestamp", data.get("timestamp", time.time())))
                 r_val = data.get("r")
                 g_val = data.get("g")
@@ -93,8 +91,8 @@ async def rppg_websocket(websocket: WebSocket):
                                     session_id=session_id,
                                     timestamp=str(data.get("timestamp", now)),
                                     bpm=float(round(bpm, 1)),
-                                    study_id=study_id,
-                                    participant_id=participant_id,
+                                    study_id=None,
+                                    participant_id=None,
                                     client_timestamp=str(client_timestamp),
                                     server_timestamp=datetime.now(timezone.utc).isoformat(),
                                 )

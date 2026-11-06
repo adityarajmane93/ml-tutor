@@ -16,7 +16,7 @@ def _context(payload: dict) -> dict | None:
     context = payload.get("study_context")
     if not isinstance(context, dict):
         return None
-    if not all(isinstance(context.get(key), str) and context[key] for key in ("study_id", "participant_id", "session_id")):
+    if not isinstance(context.get("session_id"), str) or not context["session_id"]:
         return None
     return context
 
@@ -42,8 +42,8 @@ def start_pipeline_execution(payload: dict) -> str | None:
             PipelineExecutionModel(
                 execution_id=execution_id,
                 session_id=context["session_id"],
-                study_id=context["study_id"],
-                participant_id=context["participant_id"],
+                study_id=None,
+                participant_id=None,
                 client_started_at=context.get("client_timestamp"),
                 server_started_at=_utc_now(),
                 status="running",

@@ -8,6 +8,7 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from app.db.db import SessionLocal
 from app.models.database_models import EventModel, SAMMModel
+from app.services.studies import study_for_session
 from app.models.pydantic_schemas import Event, EventBatch, SAMMPayload
 from app.services.websocket_manager import manager
 from app.core.security import require_researcher_key
@@ -50,6 +51,7 @@ def _persist_events(events: list[Event]) -> tuple[list[dict], set[str]]:
         }
         created: list[dict] = []
         seen_ids = set(existing_ids)
+        study_ids = {session_id: study_for_session(db, session_id) for session_id in {event.session_id for event in events}}
         for event in events:
             if event.event_id in seen_ids:
                 continue
@@ -65,7 +67,7 @@ def _persist_events(events: list[Event]) -> tuple[list[dict], set[str]]:
                     source=event.source,
                     schema_version=event.schema_version,
                     event_metadata=event.metadata,
-                    study_id=None,
+                    study_id=study_ids.get(event.session_id),
                     participant_id=None,
                     client_timestamp=event.client_timestamp or event.timestamp,
                     server_timestamp=server_timestamp,
@@ -129,7 +131,7 @@ async def log_samm(payload: SAMMPayload):
         valence=payload.data.valence,
         arousal=payload.data.arousal,
         dominance=payload.data.dominance,
-        study_id=None,
+        study_id=study_for_session(db, payload.session_id),
         participant_id=None,
         client_timestamp=payload.client_timestamp or payload.timestamp,
         server_timestamp=_utc_now(),

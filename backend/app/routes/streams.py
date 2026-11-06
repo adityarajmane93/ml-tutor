@@ -10,6 +10,7 @@ from app.db.db import SessionLocal
 from app.services.websocket_manager import manager
 from app.services.rppg_calculator import calculate_bpm_from_rgb, WINDOW_SIZE
 from app.models.database_models import RppgModel
+from app.services.studies import study_for_session
 from app.core.security import validate_websocket_access
 
 router = APIRouter()
@@ -91,7 +92,7 @@ async def rppg_websocket(websocket: WebSocket):
                                     session_id=session_id,
                                     timestamp=str(data.get("timestamp", now)),
                                     bpm=float(round(bpm, 1)),
-                                    study_id=None,
+                                    study_id=study_for_session(db, session_id),
                                     participant_id=None,
                                     client_timestamp=str(client_timestamp),
                                     server_timestamp=datetime.now(timezone.utc).isoformat(),

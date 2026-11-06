@@ -1,9 +1,11 @@
 """Researcher-authorized, read-only access to recorded study data."""
 
 from typing import Any
+from uuid import uuid4
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import func
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.core.security import require_researcher_key
@@ -16,7 +18,10 @@ from app.models.database_models import (
     PipelineExecutionModel,
     SAMMModel,
     StudySessionModel,
+    StudyModel,
 )
+from app.models.pydantic_schemas import StudyCreatePayload
+from app.services.studies import DEFAULT_STUDY_ID, active_formal_study, ensure_default_study, utc_now
 
 router = APIRouter(
     prefix="/research",
@@ -58,13 +63,107 @@ def _session_or_404(db: Session, session_id: str) -> StudySessionModel:
 def list_studies() -> dict[str, list[dict[str, Any]]]:
     db = SessionLocal()
     try:
-        rows = (
-            db.query(StudySessionModel.study_id, func.count(StudySessionModel.session_id))
-            .group_by(StudySessionModel.study_id)
-            .order_by(StudySessionModel.study_id.asc().nullsfirst())
-            .all()
-        )
-        return {"items": [{"study_id": study_id, "session_count": count} for study_id, count in rows]}
+        ensure_default_study(db)
+        db.commit()
+        counts = dict(db.query(StudySessionModel.study_id, func.count(StudySessionModel.session_id)).group_by(StudySessionModel.study_id).all())
+        studies = db.query(StudyModel).order_by(StudyModel.created_at.asc()).all()
+        items = [_study_payload(study, counts.get(study.study_id, 0)) for study in studies]
+        known_ids = {study.study_id for study in studies}
+        for legacy_id, count in counts.items():
+            if legacy_id is not None and legacy_id not in known_ids:
+                items.append({"study_id": legacy_id, "name": f"Legacy study {legacy_id}", "description": None, "status": "legacy", "created_at": None, "started_at": None, "stopped_at": None, "session_count": count, "system_default": False})
+        if counts.get(None, 0):
+            items.append({"study_id": None, "name": "Historical unassigned sessions", "description": None, "status": "historical-unassigned", "created_at": None, "started_at": None, "stopped_at": None, "session_count": counts[None], "system_default": False})
+        return {"items": items}
+    finally:
+        db.close()
+
+
+def _study_payload(study: StudyModel, session_count: int) -> dict[str, Any]:
+    return {"study_id": study.study_id, "name": study.name, "description": study.description, "status": study.status, "created_at": study.created_at, "started_at": study.started_at, "stopped_at": study.stopped_at, "session_count": session_count, "system_default": study.study_id == DEFAULT_STUDY_ID}
+
+
+@router.get("/studies/active")
+def get_active_study() -> dict[str, Any]:
+    db = SessionLocal()
+    try:
+        ensure_default_study(db)
+        db.commit()
+        study = active_formal_study(db)
+        return {"item": _study_payload(study, db.query(StudySessionModel).filter(StudySessionModel.study_id == study.study_id).count()) if study else None}
+    finally:
+        db.close()
+
+
+@router.post("/studies")
+def create_study(payload: StudyCreatePayload) -> dict[str, Any]:
+    db = SessionLocal()
+    try:
+        ensure_default_study(db)
+        study = StudyModel(study_id=str(uuid4()), name=payload.name.strip(), description=payload.description.strip() if payload.description else None, status="draft", created_at=utc_now())
+        db.add(study)
+        db.commit()
+        return {"item": _study_payload(study, 0)}
+    except Exception:
+        db.rollback()
+        raise HTTPException(status_code=503, detail="Study could not be created")
+    finally:
+        db.close()
+
+
+@router.post("/studies/{study_id}/start")
+def start_study(study_id: str) -> dict[str, Any]:
+    if study_id == DEFAULT_STUDY_ID:
+        raise HTTPException(status_code=422, detail="The testing study cannot be activated as a formal study")
+    db = SessionLocal()
+    try:
+        ensure_default_study(db)
+        active = active_formal_study(db, lock=True)
+        if active is not None:
+            raise HTTPException(status_code=409, detail="Another formal study is already active")
+        study = db.get(StudyModel, study_id)
+        if study is None:
+            raise HTTPException(status_code=404, detail="Study not found")
+        if study.status != "draft":
+            raise HTTPException(status_code=409, detail="Only draft studies can be started")
+        study.status = "active"
+        study.started_at = utc_now()
+        db.commit()
+        return {"item": _study_payload(study, 0)}
+    except HTTPException:
+        db.rollback()
+        raise
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(status_code=409, detail="Another formal study is already active")
+    except Exception:
+        db.rollback()
+        raise HTTPException(status_code=503, detail="Study could not be started")
+    finally:
+        db.close()
+
+
+@router.post("/studies/{study_id}/stop")
+def stop_study(study_id: str) -> dict[str, Any]:
+    if study_id == DEFAULT_STUDY_ID:
+        raise HTTPException(status_code=422, detail="The testing study cannot be stopped")
+    db = SessionLocal()
+    try:
+        study = db.query(StudyModel).filter(StudyModel.study_id == study_id).with_for_update().one_or_none()
+        if study is None:
+            raise HTTPException(status_code=404, detail="Study not found")
+        if study.status != "active":
+            raise HTTPException(status_code=409, detail="Only an active study can be stopped")
+        study.status = "completed"
+        study.stopped_at = utc_now()
+        db.commit()
+        return {"item": _study_payload(study, db.query(StudySessionModel).filter(StudySessionModel.study_id == study_id).count())}
+    except HTTPException:
+        db.rollback()
+        raise
+    except Exception:
+        db.rollback()
+        raise HTTPException(status_code=503, detail="Study could not be stopped")
     finally:
         db.close()
 
@@ -99,13 +198,13 @@ def list_sessions(
     offset: int = Query(default=0, ge=0),
 ) -> dict[str, Any]:
     _require_scope(study_id, unassigned_study, "study")
-    _require_scope(participant_id, unassigned_participant, "participant")
     db = SessionLocal()
     try:
         query = _apply_nullable_scope(db.query(StudySessionModel), StudySessionModel.study_id, study_id, unassigned_study)
-        query = _apply_nullable_scope(query, StudySessionModel.participant_id, participant_id, unassigned_participant)
+        if participant_id is not None or unassigned_participant:
+            query = _apply_nullable_scope(query, StudySessionModel.participant_id, participant_id, unassigned_participant)
         rows = (
-            query.order_by(StudySessionModel.server_started_at.desc())
+            query.order_by(StudySessionModel.server_started_at.asc())
             .offset(offset)
             .limit(limit + 1)
             .all()

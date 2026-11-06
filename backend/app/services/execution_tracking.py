@@ -4,6 +4,7 @@ from uuid import uuid4
 
 from app.db.db import SessionLocal
 from app.models.database_models import PipelineExecutionModel
+from app.services.studies import study_for_session
 
 logger = logging.getLogger(__name__)
 
@@ -42,7 +43,7 @@ def start_pipeline_execution(payload: dict) -> str | None:
             PipelineExecutionModel(
                 execution_id=execution_id,
                 session_id=context["session_id"],
-                study_id=None,
+                study_id=study_for_session(db, context["session_id"]),
                 participant_id=None,
                 client_started_at=context.get("client_timestamp"),
                 server_started_at=_utc_now(),

@@ -65,7 +65,10 @@ import { logEvent }
 
 import { logPipelineSnapshot }
   from "../services/pipelineSnapshot";
-import { getStudySessionContext } from "../store/sessionStore";
+import { getSessionContext, useSessionStore } from "../store/sessionStore";
+import { flushEventQueue, cancelTelemetryRetry } from "../services/logger";
+import { flushGazeQueue, cancelGazeRetry } from "../services/gaze";
+import GazeCalibration from "./GazeCalibration";
 
 import { createNodeTypes }
   from "../nodes/customNodeTypes";
@@ -74,6 +77,16 @@ import FeatureSelectionPanel
   from "./FeatureSelectionPanel";
 
 export default function PipelineFlow() {
+  const ending = useSessionStore((state) => state.ending);
+  const ended = useSessionStore((state) => state.ended);
+  const beginEnding = useSessionStore((state) => state.beginEnding);
+  const cancelEnding = useSessionStore((state) => state.cancelEnding);
+  const endSession = useSessionStore((state) => state.endSession);
+  const disconnectTelemetry = useSessionStore((state) => state.disconnectTelemetry);
+  const [gazeReady, setGazeReady] = useState(false);
+  const [showEndConfirm, setShowEndConfirm] = useState(false);
+  const [endError, setEndError] = useState("");
+  const activePipelineSockets = useRef<Set<WebSocket>>(new Set());
   const [
     nodes,
     setNodes,
@@ -139,6 +152,7 @@ export default function PipelineFlow() {
   const onConnect = useCallback(
     async (params: Connection) => {
 
+      if (ending || ended || !gazeReady) return;
       await handleConnect(
         params,
         edges,
@@ -147,13 +161,14 @@ export default function PipelineFlow() {
       );
     },
 
-    [edges, nodes, setEdges]
+    [edges, nodes, setEdges, ending, ended, gazeReady]
   );
 
   async function addNewNode(
     nodeType: string
   ) {
 
+    if (ending || ended || !gazeReady) return;
     const id =
       String(nodeId.current);
 
@@ -210,6 +225,7 @@ export default function PipelineFlow() {
   }
 
   async function Learn() { 
+    if (ending || ended || !gazeReady) return;
     const currentTime = Date.now(); 
     let typeToView = "notesInfo"; // Default fallback
 
@@ -232,6 +248,7 @@ export default function PipelineFlow() {
   }
 
   async function openAllNotes() {
+    if (ending || ended || !gazeReady) return;
     const currentTime = Date.now(); 
     
     setLearnModalType("allNotes");
@@ -249,6 +266,7 @@ export default function PipelineFlow() {
       newData: Record<string, unknown>
     ) => {
 
+      if (useSessionStore.getState().ending || useSessionStore.getState().ended) return;
       setNodes((nds) => {
 
         const updatedNodes =
@@ -293,14 +311,13 @@ export default function PipelineFlow() {
     );
 
   async function runPipeline() {
+    if (ending || ended || !gazeReady) return;
     try {
       // Serialize layout
       const serialized = {
         ...serializePipeline(nodes, edges),
         study_context: {
-          study_id: getStudySessionContext().studyId,
-          participant_id: getStudySessionContext().participantId,
-          session_id: getStudySessionContext().sessionId,
+          session_id: getSessionContext().sessionId,
           client_timestamp: new Date().toISOString(),
         },
       };
@@ -308,6 +325,7 @@ export default function PipelineFlow() {
 
       // Open the WebSocket connection
       const ws = new WebSocket(`${import.meta.env.VITE_WS_URL}/ws/run`);
+      activePipelineSockets.current.add(ws);
       devLog("Web Socket Opened");
       
       // Send the data when the socket opens
@@ -325,6 +343,7 @@ export default function PipelineFlow() {
 
       // Handle connection closures
       ws.onclose = (event) => {
+        activePipelineSockets.current.delete(ws);
         if (!event.wasClean) {
           console.warn("WebSocket disconnected unexpectedly.");
           setReflectionMessage("Connection lost.");
@@ -383,6 +402,30 @@ export default function PipelineFlow() {
       setReflectionMessage("Error");
     }
   }
+
+  const completeEndSession = async () => {
+    beginEnding();
+    setEndError("");
+    // No new actions are accepted from this point. Close active ML work rather
+    // than leaving background execution tied to a session being ended.
+    activePipelineSockets.current.forEach((socket) => socket.close(1000, "session ended"));
+    activePipelineSockets.current.clear();
+    const telemetrySaved = await flushEventQueue();
+    const gazeSaved = await flushGazeQueue();
+    if (!telemetrySaved || !gazeSaved) {
+      setEndError("Saving is still pending. Check your connection and retry; queued records were kept.");
+      cancelEnding();
+      return;
+    }
+    window.dispatchEvent(new Event("ml-tutor:shutdown-modalities"));
+    disconnectTelemetry();
+    cancelTelemetryRetry();
+    cancelGazeRetry();
+    if (!await endSession()) {
+      setEndError("We could not confirm the session end. Your queued data remains available; retry when connected.");
+      cancelEnding();
+    }
+  };
 
   const handleCloseLearnModal = async () => {
     // Calculate duration
@@ -488,7 +531,8 @@ export default function PipelineFlow() {
         </div>
 
         )}
-      <VideoStream />
+      {gazeReady && <VideoStream />}
+      {!gazeReady && !ended && <GazeCalibration onReady={() => setGazeReady(true)} onStopped={() => undefined} />}
       
       {showLearnModal && (
         <LearnModal 
@@ -536,13 +580,15 @@ export default function PipelineFlow() {
               nodes={nodes}
               edges={edges}
               nodeTypes={customNodeTypes}
-              onNodesChange={onNodesChange}
-              onEdgesChange={onEdgesChange}
+              onNodesChange={ending || ended ? () => undefined : onNodesChange}
+              onEdgesChange={ending || ended ? () => undefined : onEdgesChange}
               onConnect={onConnect}
-              deleteKeyCode={["Backspace", "Delete"]}
-              onNodeDragStop={(_, node) => handleNodeDragStop(node)}
-              onNodesDelete={(deletedNodes) => handleNodesDelete(deletedNodes, nodes, edges)}
-              onEdgesDelete={(deletedEdges) => handleEdgesDelete(deletedEdges, nodes, edges)}
+              deleteKeyCode={ending || ended ? [] : ["Backspace", "Delete"]}
+              onNodeDragStop={ending || ended ? undefined : (_, node) => handleNodeDragStop(node)}
+              onNodesDelete={ending || ended ? undefined : (deletedNodes) => handleNodesDelete(deletedNodes, nodes, edges)}
+              onEdgesDelete={ending || ended ? undefined : (deletedEdges) => handleEdgesDelete(deletedEdges, nodes, edges)}
+              nodesDraggable={!ending && !ended && gazeReady}
+              nodesConnectable={!ending && !ended && gazeReady}
             >
               <MiniMap style={{ border: "2px solid var(--text)", borderRadius: "0" }} />
               <Controls style={{ border: "2px solid var(--text)", borderRadius: "0", overflow: "hidden" }} />
@@ -577,6 +623,13 @@ export default function PipelineFlow() {
           }}>
             <SessionTimer />
             <AllNotesButton onClick={openAllNotes} />
+            <button
+              className="counter"
+              onClick={() => setShowEndConfirm(true)}
+              disabled={ending || ended}
+              style={{ background: "#fff", color: "#b91c1c", border: "3px solid #b91c1c", margin: 0, cursor: "pointer" }}
+              aria-label="End Session"
+            >↪ End Session</button>
           </div>
           {/* LEFT: SAMM Tracker */}
           <div style={{ 
@@ -629,6 +682,17 @@ export default function PipelineFlow() {
         </div>
 
       </div>
+
+      {showEndConfirm && <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.45)", zIndex: 9000, display: "grid", placeItems: "center" }}>
+        <div style={{ background: "#fff", border: "4px solid var(--text)", boxShadow: "var(--hard-shadow)", padding: 28, maxWidth: 440 }}>
+          <h2>End this session?</h2><p>Your work will be saved, and the session will end. You will not be able to continue this session.</p>
+          {endError && <p style={{ color: "#b91c1c", fontWeight: 700 }}>{endError}</p>}
+          <div style={{ display: "flex", justifyContent: "flex-end", gap: 12 }}>
+            <button className="counter" disabled={ending} onClick={() => { setShowEndConfirm(false); setEndError(""); }}>Cancel</button>
+            <button className="counter" disabled={ending} style={{ background: "#b91c1c", color: "#fff" }} onClick={() => void completeEndSession()}>{ending ? "Saving…" : "End Session"}</button>
+          </div>
+        </div>
+      </div>}
       
     </div>
   );

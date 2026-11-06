@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { queueGazeSample, saveCalibration } from "../services/gaze";
 import { classifyAoi, summarizeErrors } from "../services/aoi";
 import { getSessionContext } from "../store/sessionStore";
-import { releaseCamera } from "../services/cameraManager";
+import { acquireCamera, releaseCamera } from "../services/cameraManager";
 import { loadWebGazer } from "../services/webgazerLoader";
 import type { GazeData, WebGazer } from "../types/webgazer";
 
@@ -36,13 +36,16 @@ export default function GazeCalibration({ onReady, onStopped }: Props) {
     webgazerRef.current = null;
     if (!instance) return;
     try { instance.clearGazeListener(); } catch { /* initialization may have failed before a listener existed */ }
-    try { instance.stopVideo(); } catch { /* WebGazer may not have obtained a stream */ }
+    // The WebGazer static-video path receives the shared camera stream. Camera
+    // ownership stays with cameraManager so VideoStream and WebGazer cannot
+    // race to stop the same track during normal UI transitions.
     try { instance.end(); } catch { /* WebGazer may not have created its preview elements */ }
   };
 
   const stop = () => {
     active.current = false;
     stopWebGazer();
+    releaseCamera();
     onStopped();
   };
 
@@ -66,27 +69,48 @@ export default function GazeCalibration({ onReady, onStopped }: Props) {
     });
   };
 
+  const waitForWebGazerVideo = (webgazer: WebGazer) => {
+    const video = document.getElementById(webgazer.params.videoElementId) as HTMLVideoElement | null;
+    if (!video) return Promise.reject(new Error("WebGazer did not create its video element."));
+    if (video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) return Promise.resolve();
+    return new Promise<void>((resolve, reject) => {
+      const track = video.srcObject instanceof MediaStream ? video.srcObject.getVideoTracks()[0] : undefined;
+      const cleanup = () => {
+        video.removeEventListener("loadeddata", ready);
+        video.removeEventListener("error", failed);
+        track?.removeEventListener("ended", failed);
+      };
+      const ready = () => { cleanup(); resolve(); };
+      const failed = () => { cleanup(); reject(new Error("The shared camera stream ended before WebGazer was ready.")); };
+      video.addEventListener("loadeddata", ready, { once: true });
+      video.addEventListener("error", failed, { once: true });
+      track?.addEventListener("ended", failed, { once: true });
+    });
+  };
+
   const start = async () => {
     if (initializing.current || active.current) return;
     initializing.current = true;
     try {
-      // WebGazer 3.5.3 has no supported external MediaStream API. Release the
-      // shared MediaPipe track before it requests its one browser-owned stream.
-      window.dispatchEvent(new Event("ml-tutor:pause-video"));
-      releaseCamera();
+      // WebGazer's documented static-video entrypoint is implemented by
+      // assigning its argument to an internal video element's srcObject. Give
+      // it the existing managed stream so affect/rPPG and gaze share one
+      // capture instead of competing for separate camera requests.
+      const stream = await acquireCamera();
       const webgazer = await loadWebGazer();
       webgazerRef.current = webgazer;
       await webgazer.clearData();
-      webgazer.saveDataAcrossSessions(false).showVideoPreview(false).showFaceOverlay(false).showFaceFeedbackBox(false).showPredictionPoints(false).setGazeListener(listener);
+      webgazer.setStaticVideo(stream).saveDataAcrossSessions(false).showVideoPreview(false).showFaceOverlay(false).showFaceFeedbackBox(false).showPredictionPoints(false).setGazeListener(listener);
       // Avoid WebGazer's default "No stream" console callback. The catch
       // below presents the single actionable application error instead.
       await webgazer.begin(() => undefined);
+      await waitForWebGazerVideo(webgazer);
       startedAt.current = new Date().toISOString();
       active.current = true;
       changePhase("calibrating"); setPointIndex(0); setClicks(0);
     } catch (error) {
       stopWebGazer();
-      window.dispatchEvent(new Event("ml-tutor:resume-video"));
+      releaseCamera();
       console.error("WebGazer initialization failed", error);
       changePhase("error");
     } finally {
@@ -120,7 +144,7 @@ export default function GazeCalibration({ onReady, onStopped }: Props) {
     {phase === "notice" && <div style={{ maxWidth: 560, textAlign: "center" }}><h2>Eye-tracking notice</h2><p>Approximate gaze coordinates will be recorded in this browser during this session. No webcam video is sent to the server.</p><button className="neo-btn" onClick={() => void start()}>Start calibration</button></div>}
     {(phase === "calibrating" || phase === "validating") && <><p style={{ position: "fixed", top: 24 }}> {phase === "calibrating" ? `Calibration ${pointIndex + 1}/9 — click each point ${CLICKS_PER_POINT} times` : `Validation ${pointIndex + 1}/5 — look at and click each point`} </p><button aria-label="Calibration target" onClick={() => void handlePoint()} style={{ position: "fixed", transform: "translate(-50%, -50%)", width: 34, height: 34, borderRadius: "50%", border: "4px solid #111827", background: "#fbbf24", cursor: "pointer", ...pointStyle }} /></>}
     {phase === "error" && <div style={{ textAlign: "center" }}><h2>Eye tracking could not be started</h2><p>Check camera permission and retry. No gaze collection is active.</p><button className="neo-btn" onClick={() => { calibrationId.current = crypto.randomUUID(); errors.current = []; changePhase("notice"); }}>Retry calibration</button></div>}
-    {phase === "review" && <div style={{ textAlign: "center", maxWidth: 560 }}><h2>Calibration quality is low</h2><p>Median validation error: {errorSummary.median === null ? "unavailable" : `${Math.round(errorSummary.median)} px`}. Recalibration is recommended; this is not research-grade accuracy evidence.</p><div style={{ display: "flex", justifyContent: "center", gap: 12 }}><button className="neo-btn" onClick={() => { stop(); calibrationId.current = crypto.randomUUID(); errors.current = []; changePhase("notice"); }}>Recalibrate</button><button className="neo-btn" onClick={() => { changePhase("ready"); onReady(); }}>Continue with low quality</button></div></div>}
+    {phase === "review" && <div style={{ textAlign: "center", maxWidth: 560 }}><h2>Calibration quality is low</h2><p>Median validation error: {errorSummary.median === null ? "unavailable" : `${Math.round(errorSummary.median)} px`}. Recalibration is recommended; this is not research-grade accuracy evidence.</p><div style={{ display: "flex", justifyContent: "center", gap: 12 }}><button className="neo-btn" onClick={() => { calibrationId.current = crypto.randomUUID(); errors.current = []; latestGaze.current = null; void webgazerRef.current?.clearData(); changePhase("calibrating"); setPointIndex(0); setClicks(0); }}>Recalibrate</button><button className="neo-btn" onClick={() => { changePhase("ready"); onReady(); }}>Continue with low quality</button></div></div>}
     {errorSummary.median !== null && <span>Median validation error: {Math.round(errorSummary.median)} px</span>}
   </div>;
 }

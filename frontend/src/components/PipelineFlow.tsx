@@ -532,7 +532,9 @@ export default function PipelineFlow() {
 
         )}
       {gazeReady && <VideoStream />}
-      {!gazeReady && !ended && <GazeCalibration onReady={() => setGazeReady(true)} onStopped={() => undefined} />}
+      {/* Keep the controller alive after calibration. It owns the WebGazer
+          listener and must only be torn down when the session/workspace ends. */}
+      {!ended && <GazeCalibration onReady={() => setGazeReady(true)} onStopped={() => undefined} />}
       
       {showLearnModal && (
         <LearnModal 

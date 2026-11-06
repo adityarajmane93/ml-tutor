@@ -11,6 +11,15 @@ export type ResearchSession = {
 };
 
 type Page<T> = { items: T[]; limit: number; offset: number; next_offset: number | null };
+export type ResearchEvent = { event_id: string; timestamp: string; client_timestamp: string | null; server_timestamp: string | null; client_sequence: number | null; event_type: string; action: string; source: string; schema_version: string; metadata: Record<string, unknown> };
+export type WorkflowSnapshot = { event_id: string; timestamp: string; client_timestamp: string | null; server_timestamp: string | null; client_sequence: number | null; metadata: Record<string, unknown> };
+export type AffectObservation = { id: number; timestamp: string; client_timestamp: string | null; server_timestamp: string | null; valence: number; arousal: number };
+export type SammObservation = { id: number; timestamp: string; client_timestamp: string | null; server_timestamp: string | null; time_taken_to_answer: number; valence: number; arousal: number; dominance: number };
+export type GazeSample = { sample_id: string; session_id: string; client_timestamp: string; server_timestamp: string; elapsed_ms: number; x: number | null; y: number | null; viewport_width: number; viewport_height: number; route: string; aoi_type: string; aoi_id: string | null; calibration_id: string | null; validity_metadata: Record<string, unknown> };
+export type PipelineExecution = { execution_id: string; session_id: string; client_started_at: string | null; server_started_at: string; server_completed_at: string | null; status: string; request_metadata: Record<string, unknown> | null; result_metadata: Record<string, unknown> | null; error_message: string | null };
+export type GazeCalibration = { calibration_id: string; session_id: string; started_at: string; completed_at: string | null; viewport_width: number; viewport_height: number; calibration_metadata: Record<string, unknown> | null; validation_metadata: Record<string, unknown> | null; median_error_px: number | null; mean_error_px: number | null; quality_status: string };
+
+export type ResearchSessionData = { events: ResearchEvent[]; snapshots: WorkflowSnapshot[]; affect: AffectObservation[]; samm: SammObservation[]; gaze: GazeSample[]; executions: PipelineExecution[]; calibrations: GazeCalibration[] };
 
 async function researchRequest<T>(path: string, researcherKey: string): Promise<T> {
   const response = await fetch(`${import.meta.env.VITE_API_URL}${path}`, {
@@ -43,4 +52,30 @@ export function getSessions(
     `/research/sessions?${nullableScope("study_id", "unassigned_study", studyId)}&${nullableScope("participant_id", "unassigned_participant", participantId)}`,
     researcherKey,
   );
+}
+
+async function getAllPages<T>(path: string, researcherKey: string): Promise<T[]> {
+  const records: T[] = [];
+  let offset = 0;
+  while (true) {
+    const delimiter = path.includes("?") ? "&" : "?";
+    const page = await researchRequest<Page<T>>(`${path}${delimiter}limit=500&offset=${offset}`, researcherKey);
+    records.push(...page.items);
+    if (page.next_offset === null) return records;
+    offset = page.next_offset;
+  }
+}
+
+export async function getResearchSessionData(researcherKey: string, sessionId: string): Promise<ResearchSessionData> {
+  const base = `/research/sessions/${encodeURIComponent(sessionId)}`;
+  const [events, snapshots, affect, samm, gaze, executions, calibrations] = await Promise.all([
+    getAllPages<ResearchEvent>(`${base}/events`, researcherKey),
+    getAllPages<WorkflowSnapshot>(`${base}/workflow-snapshots`, researcherKey),
+    getAllPages<AffectObservation>(`${base}/affect`, researcherKey),
+    getAllPages<SammObservation>(`${base}/samm`, researcherKey),
+    getAllPages<GazeSample>(`${base}/gaze-samples`, researcherKey),
+    getAllPages<PipelineExecution>(`${base}/executions`, researcherKey),
+    getAllPages<GazeCalibration>(`${base}/calibrations`, researcherKey),
+  ]);
+  return { events, snapshots, affect, samm, gaze, executions, calibrations };
 }

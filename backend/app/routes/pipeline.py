@@ -2,6 +2,7 @@ import json
 import traceback
 import asyncio
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
+from fastapi.concurrency import run_in_threadpool
 from app.core.security import validate_websocket_access
 from app.services.execution_tracking import finish_pipeline_execution, start_pipeline_execution
 from app.services.internal_clients import execute_pipeline

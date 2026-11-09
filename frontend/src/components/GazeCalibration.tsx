@@ -3,6 +3,7 @@ import { queueGazeSample, saveCalibration } from "../services/gaze";
 import { classifyAoi, summarizeErrors } from "../services/aoi";
 import { getSessionContext } from "../store/sessionStore";
 import { acquireCamera, releaseCamera } from "../services/cameraManager";
+import { getFaceDetector, mediaPipeErrorDetails } from "../services/faceDetector";
 import { loadWebGazer } from "../services/webgazerLoader";
 import type { GazeData, WebGazer } from "../types/webgazer";
 
@@ -97,6 +98,15 @@ export default function GazeCalibration({ onReady, onStopped }: Props) {
       // it the existing managed stream so affect/rPPG and gaze share one
       // capture instead of competing for separate camera requests.
       const stream = await acquireCamera("gaze-calibration");
+      // WebGazer loads an older Emscripten Face Mesh bundle. Initialize the
+      // Tasks Vision singleton first so its runtime is never created after
+      // that legacy bundle. A detector failure remains visible but must not
+      // prevent the existing gaze/AOI calibration from continuing.
+      try {
+        await getFaceDetector();
+      } catch (error) {
+        console.error("[mediapipe] pre-WebGazer detector initialization failed; gaze calibration will continue", mediaPipeErrorDetails(error));
+      }
       const webgazer = await loadWebGazer();
       webgazerRef.current = webgazer;
       await webgazer.clearData();

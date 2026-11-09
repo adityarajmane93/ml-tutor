@@ -1,7 +1,8 @@
 import  { useEffect, useRef, useState } from "react";
-import { FaceDetector, FilesetResolver, type Detection } from "@mediapipe/tasks-vision";
+import { type FaceDetector, type Detection } from "@mediapipe/tasks-vision";
 import { useSessionStore } from '../store/sessionStore';
 import { acquireCamera, releaseCamera } from "../services/cameraManager";
+import { getFaceDetector, mediaPipeErrorDetails } from "../services/faceDetector";
 import { devLog }
   from "../flow/logger"
 
@@ -35,34 +36,14 @@ export default function VideoStream() {
   useEffect(() => {
     let active = true;
     const initializeMediaPipe = async () => {
-      const wasmRoot = "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.35/wasm";
-      const modelAssetPath = "https://storage.googleapis.com/mediapipe-models/face_detector/blaze_face_short_range/float16/1/blaze_face_short_range.tflite";
       try {
-        console.info("[mediapipe] initializing face detector", { delegate: "GPU" });
-        const vision = await FilesetResolver.forVisionTasks(wasmRoot);
-        let faceDetector: FaceDetector;
-        try {
-          faceDetector = await FaceDetector.createFromOptions(vision, {
-            baseOptions: { modelAssetPath, delegate: "GPU" },
-            runningMode: "VIDEO",
-          });
-          console.info("[mediapipe] face detector ready", { delegate: "GPU" });
-        } catch (gpuError) {
-          // WebGL is optional. A failed GPU delegate must not prevent all
-          // camera modalities from starting on CPU-only machines.
-          console.warn("[mediapipe] GPU initialization failed; retrying on CPU", { error: gpuError });
-          faceDetector = await FaceDetector.createFromOptions(vision, {
-            baseOptions: { modelAssetPath, delegate: "CPU" },
-            runningMode: "VIDEO",
-          });
-          console.info("[mediapipe] face detector ready", { delegate: "CPU" });
-        }
+        const faceDetector = await getFaceDetector();
         if (active) {
           detectorRef.current = faceDetector;
           setDetector(faceDetector);
-        } else faceDetector.close();
+        }
       } catch (error) {
-        console.error("[mediapipe] face detector initialization failed", { error });
+        console.error("[mediapipe] face detector initialization failed", mediaPipeErrorDetails(error));
         if (active) setAnalysisError("Facial analysis could not be initialized. Affect and rPPG collection are unavailable.");
       }
     };
@@ -70,7 +51,6 @@ export default function VideoStream() {
 
     return () => {
       active = false;
-      detectorRef.current?.close();
       detectorRef.current = null;
     };
   }, []);

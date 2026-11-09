@@ -2,6 +2,7 @@ import asyncio
 import hmac
 import logging
 import os
+import time
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, File, Header, HTTPException, UploadFile
@@ -72,6 +73,7 @@ async def infer(file: UploadFile = File(...), x_internal_service_key: str | None
     if len(contents) > max_bytes:
         raise HTTPException(status_code=413, detail={"code": "image_too_large"})
     timeout_seconds = float(os.getenv("AFFECT_INFERENCE_TIMEOUT_SECONDS", "15"))
+    started_at = time.monotonic()
     try:
         async with app.state.semaphore:
             result = await asyncio.wait_for(asyncio.to_thread(get_predictions, contents), timeout=timeout_seconds)
@@ -82,6 +84,8 @@ async def infer(file: UploadFile = File(...), x_internal_service_key: str | None
         logger.exception("affect_inference_failed")
         raise HTTPException(status_code=500, detail={"code": "inference_failed"}) from exc
     if result is None:
+        logger.warning("affect_inference_rejected reason=invalid_image")
         raise HTTPException(status_code=400, detail={"code": "invalid_image"})
     valence, arousal = result
+    logger.info("affect_inference_succeeded elapsed_ms=%s", round((time.monotonic() - started_at) * 1000))
     return {"valence": float(valence), "arousal": float(arousal)}

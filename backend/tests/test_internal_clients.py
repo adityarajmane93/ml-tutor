@@ -13,6 +13,8 @@ from app.services import internal_clients
 class _Response:
     def __init__(self, payload):
         self.payload = payload
+        self.is_success = True
+        self.status_code = 200
 
     def raise_for_status(self):
         return None

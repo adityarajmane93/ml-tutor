@@ -1,7 +1,11 @@
 """Authenticated, non-retrying clients for private ML-Tutor services."""
+import logging
 import os
+import time
 
 import httpx
+
+logger = logging.getLogger(__name__)
 
 
 def _service_key() -> str:
@@ -39,11 +43,18 @@ async def infer_affect(
 ) -> dict:
     base_url = os.getenv("AFFECT_INFERENCE_SERVICE_URL", "http://localhost:8002").rstrip("/")
     timeout = _timeout("AFFECT_INFERENCE_TIMEOUT_SECONDS", 15.0)
+    started_at = time.monotonic()
+    logger.info("affect_worker_request_started service_url=%s timeout_seconds=%s", base_url, timeout)
     async with httpx.AsyncClient(timeout=timeout) as client:
         response = await client.post(
             f"{base_url}/infer",
             files={"file": (filename, contents, content_type or "application/octet-stream")},
             headers={"X-Internal-Service-Key": _service_key()},
         )
+    elapsed_ms = round((time.monotonic() - started_at) * 1000)
+    if not response.is_success:
+        logger.warning("affect_worker_request_failed service_url=%s status_code=%s elapsed_ms=%s", base_url, response.status_code, elapsed_ms)
+    else:
+        logger.info("affect_worker_response_received service_url=%s elapsed_ms=%s", base_url, elapsed_ms)
     response.raise_for_status()
     return response.json()

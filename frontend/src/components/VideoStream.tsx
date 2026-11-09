@@ -9,6 +9,7 @@ export default function VideoStream() {
   const videoRef = useRef<HTMLVideoElement | null>(null); 
   const canvasRef = useRef<HTMLCanvasElement | null>(null); 
   const [detector, setDetector] = useState<FaceDetector | null>(null);
+  const detectorRef = useRef<FaceDetector | null>(null);
   const isRecording = useRef<boolean>(false); // Using a ref to prevent stale state in loops
   const sessionId = useSessionStore((state) => state.sessionId);
   const sessionIdRef = useRef(sessionId);
@@ -18,7 +19,10 @@ export default function VideoStream() {
   const rppgCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const latestFaceRef = useRef<Detection | null>(null);
   const affectInFlightRef = useRef(false);
+  const startingRef = useRef(false);
+  const rppgSentRef = useRef(0);
   const [cameraError, setCameraError] = useState(false);
+  const [analysisError, setAnalysisError] = useState<string | null>(null);
   const ENABLE_BACKEND = true;
   const ending = useSessionStore((state) => state.ending || state.ended);
   
@@ -31,22 +35,44 @@ export default function VideoStream() {
   useEffect(() => {
     let active = true;
     const initializeMediaPipe = async () => {
-      const vision = await FilesetResolver.forVisionTasks(
-        "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.35/wasm"
-      );
-      const faceDetector = await FaceDetector.createFromOptions(vision, {
-        baseOptions: {
-          modelAssetPath:
-            "https://storage.googleapis.com/mediapipe-models/face_detector/blaze_face_short_range/float16/1/blaze_face_short_range.tflite",
-          delegate: "GPU",
-        },
-        runningMode: "VIDEO",
-      });
-      if (active) setDetector(faceDetector);
+      const wasmRoot = "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.35/wasm";
+      const modelAssetPath = "https://storage.googleapis.com/mediapipe-models/face_detector/blaze_face_short_range/float16/1/blaze_face_short_range.tflite";
+      try {
+        console.info("[mediapipe] initializing face detector", { delegate: "GPU" });
+        const vision = await FilesetResolver.forVisionTasks(wasmRoot);
+        let faceDetector: FaceDetector;
+        try {
+          faceDetector = await FaceDetector.createFromOptions(vision, {
+            baseOptions: { modelAssetPath, delegate: "GPU" },
+            runningMode: "VIDEO",
+          });
+          console.info("[mediapipe] face detector ready", { delegate: "GPU" });
+        } catch (gpuError) {
+          // WebGL is optional. A failed GPU delegate must not prevent all
+          // camera modalities from starting on CPU-only machines.
+          console.warn("[mediapipe] GPU initialization failed; retrying on CPU", { error: gpuError });
+          faceDetector = await FaceDetector.createFromOptions(vision, {
+            baseOptions: { modelAssetPath, delegate: "CPU" },
+            runningMode: "VIDEO",
+          });
+          console.info("[mediapipe] face detector ready", { delegate: "CPU" });
+        }
+        if (active) {
+          detectorRef.current = faceDetector;
+          setDetector(faceDetector);
+        } else faceDetector.close();
+      } catch (error) {
+        console.error("[mediapipe] face detector initialization failed", { error });
+        if (active) setAnalysisError("Facial analysis could not be initialized. Affect and rPPG collection are unavailable.");
+      }
     };
-    initializeMediaPipe();
+    void initializeMediaPipe();
 
-    return () => { active = false; };
+    return () => {
+      active = false;
+      detectorRef.current?.close();
+      detectorRef.current = null;
+    };
   }, []);
 
   const stopCamera = () => {
@@ -55,7 +81,8 @@ export default function VideoStream() {
     if (reconnectTimerRef.current) window.clearTimeout(reconnectTimerRef.current);
     rppgWsRef.current?.close(1000, "session ended");
     rppgWsRef.current = null;
-    releaseCamera();
+    startingRef.current = false;
+    releaseCamera("video-stream");
     if (videoRef.current) videoRef.current.srcObject = null;
   };
 
@@ -77,29 +104,37 @@ export default function VideoStream() {
     };
   }, []);
 
-  const baseUrl = import.meta.env.VITE_API_URL; // || "http://localhost:8000"
-    const wsUrl = baseUrl.replace(/^http/, "ws") + "/ws/rppg";
+  const baseUrl = import.meta.env.VITE_API_URL;
+  const wsUrl = baseUrl ? baseUrl.replace(/^http/, "ws") + "/ws/rppg" : null;
 
-    const connectRppgSocket = () => {
+    function connectRppgSocket() {
+      if (!wsUrl) {
+        console.error("[rppg] WebSocket not started: VITE_API_URL is not configured");
+        return;
+      }
+      const existing = rppgWsRef.current;
+      if (existing && (existing.readyState === WebSocket.OPEN || existing.readyState === WebSocket.CONNECTING)) return;
+      console.info("[rppg] connecting", { url: wsUrl });
       const ws = new WebSocket(wsUrl);
 
       ws.onopen = () => {
-        devLog("rPPG Connected");
+        console.info("[rppg] socket open");
       };
 
       ws.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data);
           if (data.bpm !== undefined) {
-            devLog("Live BPM:", data.bpm);
+            console.info("[rppg] BPM calculated", { bpm: data.bpm });
           }
-        } catch {
-          // no per-frame spam
+        } catch (error) {
+          console.warn("[rppg] invalid socket response", { error });
         }
       };
 
-      ws.onclose = () => {
-        devLog("rPPG Closed");
+      ws.onclose = (event) => {
+        console.warn("[rppg] socket closed", { code: event.code, reason: event.reason || "none" });
+        if (rppgWsRef.current === ws) rppgWsRef.current = null;
 
         if (!shouldReconnectRppgRef.current) return;
 
@@ -109,13 +144,14 @@ export default function VideoStream() {
       };
 
       ws.onerror = () => {
+        console.error("[rppg] socket error; closing connection");
         ws.close();
       };
 
       rppgWsRef.current = ws;
-    };
-  if (ENABLE_BACKEND) {
-    useEffect(() => {
+    }
+  useEffect(() => {
+      if (!ENABLE_BACKEND) return;
       connectRppgSocket();
 
       return () => {
@@ -128,7 +164,6 @@ export default function VideoStream() {
         }
       };
     }, []);
-  }
 
   // AUTO-START CAMERA when the detector is ready
   useEffect(() => {
@@ -137,10 +172,11 @@ export default function VideoStream() {
     }
   }, [detector, ending]);
 
-  const startCamera = async () => {
-    if (ending) return;
+  async function startCamera() {
+    if (ending || isRecording.current || startingRef.current) return;
+    startingRef.current = true;
     try {
-      const stream = await acquireCamera();
+      const stream = await acquireCamera("video-stream");
       shouldReconnectRppgRef.current = true;
       setCameraError(false);
       if(ENABLE_BACKEND){
@@ -150,9 +186,10 @@ export default function VideoStream() {
       }
 
       const track = stream.getVideoTracks()[0];
+      if (!track) throw new Error("Managed camera stream has no video track");
 
-        track.onended = () => {
-          console.warn("Camera stopped");
+        const trackEnded = () => {
+          console.warn("[camera] video track ended while VideoStream was active");
           setCameraError(true);
           shouldReconnectRppgRef.current = false;
           isRecording.current = false;
@@ -165,28 +202,40 @@ export default function VideoStream() {
             rppgWsRef.current.close();
           }
 
-          releaseCamera();
+          releaseCamera("video-stream");
           if (videoRef.current) {
             videoRef.current.srcObject = null;
           }
         };
+        track.addEventListener("ended", trackEnded, { once: true });
 
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
         
         videoRef.current.onloadeddata = () => {
-          videoRef.current?.play();
+          void videoRef.current?.play().catch((error) => {
+            console.error("[camera] video playback could not start", { error });
+            setCameraError(true);
+          });
           isRecording.current = true;
+          startingRef.current = false;
+          console.info("[camera] VideoStream active", { width: videoRef.current?.videoWidth, height: videoRef.current?.videoHeight });
           processVideoLoop();
           processRppgLoop();
         };
-        
+      } else {
+        throw new Error("Video element is unavailable");
       }
     } catch (err) {
-      console.error("Camera permission denied. User must allow access.", err);
+      console.error("[camera] VideoStream activation failed", { error: err });
       setCameraError(true);
+      releaseCamera("video-stream");
+    } finally {
+      // onloadeddata clears this before loops begin; this covers every early
+      // failure path and keeps a reconnect click from being ignored forever.
+      if (!isRecording.current) startingRef.current = false;
     }
-  };
+  }
 
   // THE ENGAGEMENT HEURISTIC
   const checkEngagement = (face: Detection): boolean => {
@@ -203,10 +252,26 @@ export default function VideoStream() {
 
     // Calculate ratio. 1.0 = perfect forward gaze. 
     // Drops near 0 if the head is turned completely sideways.
-    const ratio = Math.min(distRight, distLeft) / Math.max(distRight, distLeft);
+    const widestDistance = Math.max(distRight, distLeft);
+    if (!Number.isFinite(widestDistance) || widestDistance <= 0) return false;
+    const ratio = Math.min(distRight, distLeft) / widestDistance;
 
     // If the ratio is above 0.4, they are looking generally toward the screen
     return ratio > 0.4;
+  };
+
+  const validBoundingBox = (face: Detection) => {
+    const bbox = face.boundingBox;
+    const video = videoRef.current;
+    if (!bbox || !video) return null;
+    const { originX, originY, width, height } = bbox;
+    if (![originX, originY, width, height].every(Number.isFinite) || width <= 1 || height <= 1) return null;
+    const x = Math.max(0, originX);
+    const y = Math.max(0, originY);
+    const right = Math.min(video.videoWidth, originX + width);
+    const bottom = Math.min(video.videoHeight, originY + height);
+    if (right - x <= 1 || bottom - y <= 1) return null;
+    return { x, y, width: right - x, height: bottom - y };
   };
 
 
@@ -228,35 +293,53 @@ const processVideoLoop = async () => {
     }
       
       const isEngaged = checkEngagement(face);
+      const bounds = validBoundingBox(face);
 
-      if (isEngaged && canvasRef.current && face.boundingBox && !affectInFlightRef.current) {
-        const { originX, originY, width, height } = face.boundingBox;
+      if (isEngaged && canvasRef.current && bounds && !affectInFlightRef.current) {
+        const { x, y, width, height } = bounds;
 
         const canvas = canvasRef.current;
         const ctx = canvas.getContext("2d");
-        if (!ctx) return;
+        if (!ctx) {
+          console.error("[affect] face frame extraction failed: 2D canvas is unavailable");
+          setTimeout(processVideoLoop, 1000);
+          return;
+        }
 
         const padX = width * 0.1;
         const padY = height * 0.1;
+        const sourceX = Math.max(0, x - padX);
+        const sourceY = Math.max(0, y - padY);
+        const sourceRight = Math.min(videoRef.current.videoWidth, x + width + padX);
+        const sourceBottom = Math.min(videoRef.current.videoHeight, y + height + padY);
+        const sourceWidth = sourceRight - sourceX;
+        const sourceHeight = sourceBottom - sourceY;
+        if (sourceWidth <= 1 || sourceHeight <= 1) {
+          console.warn("[affect] face frame extraction skipped: crop is outside the video frame");
+          setTimeout(processVideoLoop, 1000);
+          return;
+        }
 
-        canvas.width = width + (padX * 2);
-        canvas.height = height + (padY * 2);
+        canvas.width = Math.round(sourceWidth);
+        canvas.height = Math.round(sourceHeight);
 
         ctx.drawImage(
           videoRef.current,
-          Math.max(0, originX - padX), 
-          Math.max(0, originY - padY),
-          width + (padX * 2),
-          height + (padY * 2),
+          sourceX,
+          sourceY,
+          sourceWidth,
+          sourceHeight,
           0,
           0,
           canvas.width,
           canvas.height
         );
 
+        affectInFlightRef.current = true;
         canvas.toBlob(async (blob) => {
           if (!blob) {
-            console.warn("Canvas is empty or failed to create blob.");
+            affectInFlightRef.current = false;
+            console.warn("[affect] face frame extraction failed: canvas produced no image");
             return;
           }
           const formData = new FormData();
@@ -265,21 +348,34 @@ const processVideoLoop = async () => {
           formData.append("session_id", sessionIdRef.current);
           formData.append("client_timestamp", new Date().toISOString());
 
+          let timeout: number | null = null;
           try {
             if (ENABLE_BACKEND){
-              affectInFlightRef.current = true;
-              void fetch(`${import.meta.env.VITE_API_URL}/predict_valenceArousal`, {
+              const abortController = new AbortController();
+              timeout = window.setTimeout(() => abortController.abort(), 20_000);
+              const response = await fetch(`${import.meta.env.VITE_API_URL}/predict_valenceArousal`, {
                 method: "POST",
                 body: formData,
-              }).finally(() => { affectInFlightRef.current = false; });
-              devLog("Face detected, sent to backend.");
+                signal: abortController.signal,
+              });
+              window.clearTimeout(timeout);
+              timeout = null;
+              if (!response.ok) {
+                throw new Error(`Core API returned HTTP ${response.status}`);
+              }
+              await response.json();
+              console.info("[affect] inference response received successfully");
             }
           } catch (error) {
-            console.error("Failed to send engaged face to backend", error);
+            console.error("[affect] request failed", { error });
+          } finally {
+            if (timeout !== null) window.clearTimeout(timeout);
+            affectInFlightRef.current = false;
           }
         }, "image/jpeg", 0.9);
       } else {
-        devLog("Face detected, but user is looking away. Dropped frame.");
+        const reason = !isEngaged ? "engagement_gate" : !bounds ? "invalid_bounding_box" : affectInFlightRef.current ? "request_in_flight" : "canvas_unavailable";
+        devLog("[affect] sample skipped", { reason });
       }
 
     setTimeout(processVideoLoop, 1000);
@@ -294,7 +390,9 @@ const processVideoLoop = async () => {
       return;
     }
 
-    const startTimeMs = performance.now();
+    // currentTime is the capture clock and avoids assigning a synthetic frame
+    // time when the browser throttles this loop.
+    const startTimeMs = videoRef.current.currentTime * 1000;
     const result = detector.detectForVideo(videoRef.current, startTimeMs);
     if (result.detections?.length) {
         latestFaceRef.current = result.detections[0];
@@ -302,20 +400,26 @@ const processVideoLoop = async () => {
 
     if (result.detections && result.detections.length > 0 && rppgCanvasRef.current) {
       const face = result.detections[0];
-      const bbox = face.boundingBox;
+      const bbox = validBoundingBox(face);
 
       if (bbox) {
-        const { originX, originY, width, height } = bbox;
+        const { x, y, width, height } = bbox;
 
         // Forehead ROI: top 25% height, middle 40% width
-        const fx = originX + width * 0.3;
-        const fy = originY;
+        const fx = x + width * 0.3;
+        const fy = y;
         const fw = width * 0.4;
         const fh = height * 0.25;
 
         const canvas = rppgCanvasRef.current;
         const ctx = canvas.getContext("2d");
         if (!ctx) {
+          setTimeout(processRppgLoop, 33);
+          return;
+        }
+
+        if (fw <= 1 || fh <= 1) {
+          console.warn("[rppg] sample skipped: forehead ROI is invalid");
           setTimeout(processRppgLoop, 33);
           return;
         }
@@ -350,15 +454,25 @@ const processVideoLoop = async () => {
             rppgWsRef.current.send(
               JSON.stringify({
                 session_id: sessionIdRef.current,
-                timestamp: Date.now() / 1000,
+                timestamp: videoRef.current.currentTime,
                 client_timestamp: new Date().toISOString(),
                 r: rgb.r,
                 g: rgb.g,
                 b: rgb.b,
               })
             );
+            rppgSentRef.current += 1;
+            if (rppgSentRef.current % 30 === 0) {
+              console.info("[rppg] RGB samples sent", { acceptedByClient: rppgSentRef.current });
+            }
+          } else if (rppgSentRef.current % 90 === 0) {
+            // This is intentionally rate-limited: it explains missing data
+            // without logging face pixels or flooding the console every frame.
+            devLog("[rppg] sample not sent: socket is not open");
           }
         }
+      } else {
+        devLog("[rppg] sample skipped: invalid face bounding box");
       }
     }
 
@@ -390,6 +504,12 @@ const processVideoLoop = async () => {
               Reconnect Camera
             </button>
           </div>
+        </div>
+      )}
+
+      {analysisError && (
+        <div role="alert" style={{ position: "fixed", right: 16, bottom: 16, zIndex: 99999, maxWidth: 420, padding: 16, background: "#fff", border: "3px solid #b91c1c", color: "#111827" }}>
+          {analysisError}
         </div>
       )}
 

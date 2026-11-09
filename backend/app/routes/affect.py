@@ -30,12 +30,14 @@ async def predict_valenceArousal(
     timestamp = filename.split("_", 1)[0]
     try:
         contents = await file.read()
+        logger.info("affect_request_received session_id=%s bytes=%s", session_id, len(contents))
         if len(contents) > _image_limit():
             raise ValueError("image_too_large")
         inference = await infer_affect(filename=filename, contents=contents, content_type=file.content_type)
         valence, arousal = float(inference["valence"]), float(inference["arousal"])
         await asyncio.to_thread(record_affect_sample, session_id=session_id, timestamp=timestamp, client_timestamp=client_timestamp, valence=valence, arousal=arousal)
         await manager.broadcast_event({"event_type": "AFFECT_STATE", "session_id": session_id, "timestamp": timestamp, "metadata": {"valence": valence, "arousal": arousal}})
+        logger.info("affect_sample_recorded session_id=%s", session_id)
         return {"status": "success", "valence": valence, "arousal": arousal}
     except (httpx.HTTPError, TimeoutError, KeyError, ValueError) as exc:
         logger.warning("affect_inference_failed session_id=%s reason=%s", session_id, type(exc).__name__)

@@ -134,6 +134,16 @@ class PhaseOneStabilizationTests(unittest.TestCase):
         self.assertGreater(bpm, 40)
         self.assertLess(bpm, 220)
 
+    def test_rppg_uses_observed_sample_rate_when_timestamps_are_available(self):
+        import numpy as np
+
+        sample_count = 400
+        timestamps = np.arange(sample_count) / 20.0
+        pulse = np.sin(2 * np.pi * 1.2 * timestamps)
+        bpm = calculate_bpm_from_rgb(100 + 0.2 * pulse, 120 + pulse, 110 + 0.5 * pulse, timestamps)
+        self.assertIsNotNone(bpm)
+        self.assertAlmostEqual(bpm, 72, delta=3)
+
     @classmethod
     def tearDownClass(cls):
         engine.dispose()

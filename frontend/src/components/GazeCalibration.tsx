@@ -45,7 +45,7 @@ export default function GazeCalibration({ onReady, onStopped }: Props) {
   const stop = () => {
     active.current = false;
     stopWebGazer();
-    releaseCamera();
+    releaseCamera("gaze-calibration");
     onStopped();
   };
 
@@ -96,7 +96,7 @@ export default function GazeCalibration({ onReady, onStopped }: Props) {
       // assigning its argument to an internal video element's srcObject. Give
       // it the existing managed stream so affect/rPPG and gaze share one
       // capture instead of competing for separate camera requests.
-      const stream = await acquireCamera();
+      const stream = await acquireCamera("gaze-calibration");
       const webgazer = await loadWebGazer();
       webgazerRef.current = webgazer;
       await webgazer.clearData();
@@ -110,7 +110,7 @@ export default function GazeCalibration({ onReady, onStopped }: Props) {
       changePhase("calibrating"); setPointIndex(0); setClicks(0);
     } catch (error) {
       stopWebGazer();
-      releaseCamera();
+      releaseCamera("gaze-calibration");
       console.error("WebGazer initialization failed", error);
       changePhase("error");
     } finally {

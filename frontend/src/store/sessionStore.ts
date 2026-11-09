@@ -16,6 +16,7 @@ type SessionStore = SessionContext & {
   nextClientSequence: () => number;
   beginEnding: () => void;
   cancelEnding: () => void;
+  finishSessionLocally: () => void;
   connectTelemetry: () => void;
   disconnectTelemetry: () => void;
 };
@@ -86,6 +87,7 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
   },
   beginEnding: () => set({ ending: true }),
   cancelEnding: () => set({ ending: false }),
+  finishSessionLocally: () => set({ sessionStarted: false, ending: false, ended: true }),
   connectTelemetry: () => {
     if (get().ending || get().ended || get().telemetrySocket?.readyState === WebSocket.OPEN) return;
     const ws = new WebSocket(`${import.meta.env.VITE_WS_URL}/ws/dashboard`);

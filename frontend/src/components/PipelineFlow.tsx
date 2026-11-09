@@ -82,7 +82,7 @@ export default function PipelineFlow() {
   const ending = useSessionStore((state) => state.ending);
   const ended = useSessionStore((state) => state.ended);
   const beginEnding = useSessionStore((state) => state.beginEnding);
-  const cancelEnding = useSessionStore((state) => state.cancelEnding);
+  const finishSessionLocally = useSessionStore((state) => state.finishSessionLocally);
   const endSession = useSessionStore((state) => state.endSession);
   const disconnectTelemetry = useSessionStore((state) => state.disconnectTelemetry);
   const [gazeReady, setGazeReady] = useState(false);
@@ -419,28 +419,28 @@ export default function PipelineFlow() {
     }
   }
 
-  const completeEndSession = async () => {
+  const completeEndSession = () => {
     beginEnding();
     setEndError("");
     // No new actions are accepted from this point. Close active ML work rather
     // than leaving background execution tied to a session being ended.
     activePipelineSockets.current.forEach((socket) => socket.close(1000, "session ended"));
     activePipelineSockets.current.clear();
-    const telemetrySaved = await flushEventQueue();
-    const gazeSaved = await flushGazeQueue();
-    if (!telemetrySaved || !gazeSaved) {
-      setEndError("Saving is still pending. Check your connection and retry; queued records were kept.");
-      cancelEnding();
-      return;
-    }
+    // Do not trap a participant in the end-session dialog when offline. The
+    // outboxes stay in local storage, and these delivery attempts are best
+    // effort only; closing the study UI must never depend on their result.
+    void flushEventQueue();
+    void flushGazeQueue();
     window.dispatchEvent(new Event("ml-tutor:shutdown-modalities"));
     disconnectTelemetry();
     cancelTelemetryRetry();
     cancelGazeRetry();
-    if (!await endSession()) {
-      setEndError("We could not confirm the session end. Your queued data remains available; retry when connected.");
-      cancelEnding();
-    }
+    const endRequest = endSession();
+    finishSessionLocally();
+    setShowEndConfirm(false);
+    void endRequest.then((confirmed) => {
+      if (!confirmed) console.warn("[session] end request was not confirmed; queued records remain in local storage");
+    });
   };
 
   const handleCloseLearnModal = async () => {
@@ -705,7 +705,7 @@ export default function PipelineFlow() {
 
       {showEndConfirm && <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.45)", zIndex: 9000, display: "grid", placeItems: "center" }}>
         <div style={{ background: "#fff", border: "4px solid var(--text)", boxShadow: "var(--hard-shadow)", padding: 28, maxWidth: 440 }}>
-          <h2>End this session?</h2><p>Your work will be saved, and the session will end. You will not be able to continue this session.</p>
+          <h2>End this session?</h2><p>The session will close immediately. Pending sync will not prevent you from ending it.</p>
           {endError && <p style={{ color: "#b91c1c", fontWeight: 700 }}>{endError}</p>}
           <div style={{ display: "flex", justifyContent: "flex-end", gap: 12 }}>
             <button className="counter" disabled={ending} onClick={() => { setShowEndConfirm(false); setEndError(""); }}>Cancel</button>

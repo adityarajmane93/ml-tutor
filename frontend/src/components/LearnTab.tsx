@@ -372,9 +372,11 @@ export default function LearnModal({
         <div style={{
           display: 'flex',
           flexDirection: 'row',
-          // flex: 1, // Takes up all remaining vertical space below the SAMM bar
+          flex: 1,
+          minWidth: 0,
           minHeight: 0, // CRITICAL: This allows the panes inside to scroll properly!
           gap: '20px',
+          overflow: 'hidden',
         }}>
           
           {/* LEFT PANE: NAVIGATION SIDEBAR */}
@@ -384,7 +386,9 @@ export default function LearnModal({
               display: 'flex',
               flexDirection: 'column',
               gap: '1px', 
+              flex: '0 0 155px',
               width: '155px', 
+              minWidth: 0,
               borderRight: '5px solid #111827',
               paddingRight: '20px',
               paddingTop: '10px',
@@ -443,7 +447,7 @@ export default function LearnModal({
                 id="middle-reading-pane"
                 data-aoi-type="learn_content"
                 data-aoi-id={logic.activeTab}
-                style={{ flex: 2, overflowY: 'auto', paddingRight: '20px', textAlign: 'left' }}
+                style={{ flex: '2 1 0', minWidth: 0, overflowY: 'auto', paddingRight: '20px', textAlign: 'left' }}
                 onMouseUp={logic.handleTextSelection}
                 onScroll={handleResourceScroll}
               >
@@ -451,7 +455,7 @@ export default function LearnModal({
               </div>
 
               {/* RIGHT PANE: STUDY NOTES DASHBOARD */}
-              <div data-aoi-type="learn_notes" data-aoi-id={logic.activeTab}>
+              <div data-aoi-type="learn_notes" data-aoi-id={logic.activeTab} style={{ flex: '1.2 1 0', minWidth: 0, minHeight: 0, display: 'flex' }}>
                 <NotesPanel {...logic} />
               </div>
             </>

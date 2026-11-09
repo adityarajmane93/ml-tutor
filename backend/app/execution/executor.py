@@ -28,53 +28,55 @@ def execute_pipeline(pipeline):
 
     # ------------------------------------------------
 
-    def execute_branch(model_node_id):
+    # Dataset parsing, splitting, and one-hot encoding are independent of the
+    # model.  Several model nodes commonly share that same upstream path, so
+    # cache the prepared state once per path instead of redoing this expensive
+    # work for every model comparison.
+    prepared_states = {}
 
-        state = create_execution_state()
-
+    def path_to(node_id):
+        """Return the currently supported first-parent path to a node."""
         path = []
-
-        current = model_node_id
+        current = node_id
 
         while True:
-
             path.append(current)
-
-            if len(parents[current]) == 0:
+            if not parents[current]:
                 break
-
             current = parents[current][0]
 
-        path.reverse()
+        return tuple(reversed(path))
 
-        for node_id in path:
+    def prepare_branch(model_node_id):
+        path = path_to(model_node_id)
+        prefix = path[:-1]
 
-            node = node_map[node_id]
+        if prefix not in prepared_states:
+            state = create_execution_state()
 
-            if node["type"] == "datasetNode":
+            for node_id in prefix:
+                node = node_map[node_id]
 
-                result = handle_dataset_node(
-                    node,
-                    state
-                )
+                if node["type"] == "datasetNode":
+                    result = handle_dataset_node(node, state)
+                    if result:
+                        return None, result
+                elif node["type"] == "preprocessingNode":
+                    handle_preprocessing_node(node, state)
 
-                if result:
-                    return None, result
+            prepared_states[prefix] = state
 
-            elif node["type"] == "preprocessingNode":
+        # Preprocessing handlers replace their data objects rather than mutate
+        # them in place. A shallow copy isolates each fitted model while
+        # avoiding an expensive DataFrame copy for every model node.
+        return dict(prepared_states[prefix]), None
 
-                handle_preprocessing_node(
-                    node,
-                    state
-                )
+    def execute_branch(model_node_id):
+        state, error = prepare_branch(model_node_id)
+        if error:
+            return None, error
 
-            elif node["type"] == "modelNode":
-
-                handle_model_node(
-                    node,
-                    state
-                )
-
+        handle_model_node(node_map[model_node_id], state)
         return state, None
 
     # ------------------------------------------------
@@ -90,6 +92,7 @@ def execute_pipeline(pipeline):
     ]
 
     results = {}
+    sampling_details = {}
 
     # ====================================================
 
@@ -123,6 +126,10 @@ def execute_pipeline(pipeline):
 
             if error:
                 return error
+
+            sampling = state.get("sampling")
+            if sampling:
+                sampling_details[sampling["datasetNodeId"]] = sampling
 
             metrics = handle_evaluation_node(
                 evaluation_node,
@@ -158,8 +165,10 @@ def execute_pipeline(pipeline):
 
     print(results)
 
-    return {
+    response = {"evaluations": results}
+    if sampling_details:
+        response["execution"] = {
+            "sampling": list(sampling_details.values())
+        }
 
-        "evaluations": results
-
-    }
+    return response

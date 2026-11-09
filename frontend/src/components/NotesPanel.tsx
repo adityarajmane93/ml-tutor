@@ -91,6 +91,7 @@ export default function NotesPanel({
       ref={rightPaneRef}
       style={{
         flex: 1.2,
+        minWidth: 0,
         borderLeft: '4px solid #111827',
         paddingLeft: '20px',
         paddingRight: '5px',

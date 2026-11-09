@@ -61,7 +61,8 @@ def handle_model_node(
 
         model = (
             KNeighborsClassifier(
-                n_neighbors=k
+                n_neighbors=k,
+                n_jobs=-1,
             )
         )
 
@@ -105,7 +106,12 @@ def handle_model_node(
 
         model = (
             LogisticRegression(
-                max_iter=1000
+                # The previous 1,000-iteration default made large datasets
+                # noticeably slow. This tolerance converges sufficiently for
+                # the tutor's comparative feedback while keeping runs quick.
+                max_iter=300,
+                tol=1e-3,
+                random_state=42,
             )
         )
 

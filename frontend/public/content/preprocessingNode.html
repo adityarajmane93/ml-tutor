@@ -1,49 +1,11 @@
-<h2>Preprocessing Node</h2>
-<p>If you ever feel stuck, use the "How are you feeling?" tracker at the top of your screen to log your emotions.</p>
-
-<h3>1. Intuision: </h3>
-
-    <p>Before you start doing your homework, you 𝗽𝗿𝗼𝗯𝗮𝗯𝗹𝘆 clean out your messy backpack, organize your pencils, and throw away useless wrappers. Data Preprocessing is exactly the same thing. It is the act of cleaning up our messy data before we hand it over to the computer's brain.</p>
-    <!-- <p> As you read, remember to highlight key terms and use your Study Notes to save important concepts. If troubleshooting your data becomes frustrating, remember to log your feelings using the SAMM ("How are you feeling?") tracker at the top of your screen. -->
-    <p>Real world data is almost always a total mess. Imagine a spreadsheet of student grades where someone accidentally typed a letter instead of a number, or left half the rows completely blank. If we feed that directly into a math algorithm, the computer will crash because it does not know how to multiply a blank space.</p>
-    <p>  Data Preprocessing is the computational thinking skill of 𝘁𝗿𝗼𝘂𝗯𝗹𝗲𝘀𝗵𝗼𝗼𝘁𝗶𝗻𝗴 𝗮𝗻𝗱 𝗰𝗹𝗲𝗮𝗻𝗶𝗻𝗴 your data. It ensures that the features of your data are perfectly prepped before they hit the Model node.
-    </p>
-
-<h3>2. Context of ML-Tutor</h3>
-    <p>In this step, we use clever tricks to fix the dataset. We might delete rows that have missing information. We might remove duplicate entries. We might even scale massive numbers down to smaller percentages so the computer can calculate them faster. </p>
-
-    <p> Look closely at the orange Preprocessing block in your workspace. You will notice two main drop-down menus: 𝗠𝗲𝘁𝗵𝗼𝗱 and 𝗦𝘁𝗿𝗮𝘁𝗲𝗴𝘆 . This is where you get to decide how to clean your data.</p>
-
-    <!-- <p> 𝗔. 𝗧𝗵𝗲 "𝗠𝗲𝘁𝗵𝗼𝗱" 𝗗𝗿𝗼𝗽𝗱𝗼𝘄𝗻 </p> -->
-    <h4>2.1 The "Method" Dropdown</h4>
-        <p>This tells the computer what kind of cleaning action you want to take.</p>
-        <img src="/images/data_cleaning.png" alt="Fixing Messy Data" style="display: flex; justify-content: center; width: 20%; border-radius: 8px; margin: 20px auto;" />
-        <ul>
-            <li>𝗙𝗶𝗹𝗹 𝗠𝗶𝘀𝘀𝗶𝗻𝗴 𝗩𝗮𝗹𝘂𝗲𝘀: This method commands the system to find any blank spaces in your dataset and replace them with a calculated guess. This is crucial because most machine learning algorithms cannot process blank spaces.</li>
-            <li>𝗥𝗲𝗺𝗼𝘃𝗲 𝗥𝗼𝘄𝘀: Instead of guessing the missing information, this method commands the system to simply delete any row of data that is incomplete.  </li>
-            <p>𝘊𝘳𝘪𝘵𝘪𝘤𝘢𝘭 𝘛𝘩𝘪𝘯𝘬𝘪𝘯𝘨 𝘗𝘳𝘰𝘮𝘱𝘵: 𝘐𝘧 𝘺𝘰𝘶 𝘩𝘢𝘷𝘦 𝘢 𝘷𝘦𝘳𝘺 𝘴𝘮𝘢𝘭𝘭 𝘥𝘢𝘵𝘢𝘴𝘦𝘵, 𝘪𝘴 𝘪𝘵 𝘢 𝘨𝘰𝘰𝘥 𝘪𝘥𝘦𝘢 𝘵𝘰 𝘥𝘦𝘭𝘦𝘵𝘦 𝘦𝘯𝘵𝘪𝘳𝘦 𝘳𝘰𝘸𝘴? 𝘠𝘰𝘶 𝘮𝘪𝘨𝘩𝘵 𝘭𝘰𝘴𝘦 𝘷𝘢𝘭𝘶𝘢𝘣𝘭𝘦 𝘪𝘯𝘧𝘰𝘳𝘮𝘢𝘵𝘪𝘰𝘯!</p> 
-            <!-- </li> -->
-        </ul>
-    <!-- <p>𝗕. 𝗧𝗵𝗲 "𝗦𝘁𝗿𝗮𝘁𝗲𝗴𝘆" 𝗗𝗿𝗼𝗽𝗱𝗼𝘄𝗻</p> -->
-    <h4>2.1 The "Strategy" Dropdown</h4>
-        <p>If you choose to "Fill Missing Values", you must give the computer a strategy for what to fill those blanks/empty rows with.</p>
-        <ul>
-            <li>𝗨𝘀𝗲 𝗔𝘃𝗲𝗿𝗮𝗴𝗲: This is a popular statistical strategy. If you have a column tracking the "Age" of patients, and one patient's age is missing, the computer will calculate the average (mean) age of all the other patients and insert that number into the blank space. By relying on math and statistics, you keep your dataset intact without skewing the data too much.</li>
-        </ul>
-
-<h3> 3. Information Flow</h3>
-    <p> Machine learning is all about algorithmic thinking and creating a step-by-step flow of information.
-    Notice the wires connecting your nodes. The data flows out of the blue Dataset node and into the input of your orange Preprocessing node. Sometimes, data is so messy that it requires multiple cleaning steps. In ML-Tutor, you can actually connect your Dataset to 𝗺𝘂𝗹𝘁𝗶𝗽𝗹𝗲 𝗣𝗿𝗲𝗽𝗿𝗼𝗰𝗲𝘀𝘀𝗶𝗻𝗴 𝗻𝗼𝗱𝗲𝘀. </p>
-
-    <!-- <p> 𝗜𝗺𝗽𝗼𝗿𝘁𝗮𝗻𝗰𝗲 𝗼𝗳 𝗗𝗮𝘁𝗮:   </p> -->
-
-    <p>Clean data leads to a highly intelligent model. </p> 
-
-<h3>📝 Summary Checklist Before You Move On:</h3>
-    <ol>
-        <li>Have you identified if your dataset has missing or broken data?</li>
-        <li>Have you selected a logical Method (like Fill Missing Values) and Strategy (like Use Average) on your orange node?</li>
-        <li>Have you connected the output wire of your Dataset node to the input of this Preprocessing node?</li>
-        <li>Have you connected the output wire of this Preprocessing node to the red Model node?</li>
-
-    </ol>
+<h2>Preprocessing: preparing data for a model</h2>
+<details style="margin:0 0 20px;border:2px solid #111827;padding:10px 14px;border-radius:8px"><summary><strong>Learning outcomes</strong></summary><ul><li>Explain why preprocessing choices affect model behavior.</li><li>Compare filling missing values, dropping rows, and removing duplicates.</li><li>Recognize outlier sensitivity, feature-scale issues, and leakage.</li><li>Justify a preprocessing choice in ML-Tutor.</li></ul></details>
+<h3>1. What preprocessing is</h3><p>Preprocessing transforms or filters data before model training. Its purpose is not to make data look perfect; it is to make choices explicit, handle known problems, and preserve information needed for a fair evaluation.</p>
+<h3>2. Missing data and missingness</h3><p>A blank may occur because a value was not measured, was not recorded, or does not apply. Those reasons matter: replacing a value is an assumption, while dropping a row reduces the available evidence.</p><div data-learn-widget="missing-values"></div>
+<h3>3. Fill with an average or remove rows?</h3><p>Mean imputation keeps observations but can hide uncertainty and reduce variation. Dropping rows avoids invented values but can shrink a small dataset or change which people or cases remain. In ML-Tutor, <strong>Fill Missing Values → Use Average</strong> computes numeric feature means from training data and uses those means for both feature splits. It fills a numeric training target with its mean, or a categorical target with its training mode.</p><p><strong>Fill Missing Values → Remove Rows</strong> drops incomplete rows separately from training and test partitions. It is not a claim that one strategy is universally better.</p>
+<h3>4. Why mean can be sensitive to outliers</h3><p>A mean uses every value, so an extreme value can shift it substantially. The median is often less sensitive to a single extreme value, but median imputation is a <em>conceptual extension</em>, not a current node control.</p><div data-learn-widget="outlier"></div>
+<h3>5. Duplicate observations</h3><p>Exact duplicates can give repeated evidence more influence. They may be accidental copies, or they may represent genuinely repeated events; inspect the context before removing them.</p><div data-learn-widget="duplicates"></div>
+<h3>6. Feature scales and KNN</h3><p>Distance-based methods such as K-nearest neighbors are sensitive to numerical scale. A feature measured in thousands can dominate one measured from 0 to 1. Scaling is important to consider, but scaling is a <em>conceptual extension</em>: this Preprocessing node does not currently offer a scaling control.</p>
+<h3>7. Split first, then learn preprocessing statistics</h3><p>Statistics such as a mean should be learned from training data, then applied to test data. Learning them from all rows lets held-out information influence training and is a form of <strong>data leakage</strong>. The current average strategy follows this training-first pattern for numeric feature means.</p>
+<h3>8. Applying this in ML-Tutor</h3><p>The node provides only two methods: <strong>Fill Missing Values</strong> (average or remove rows) and <strong>Remove Duplicate Rows</strong>. Duplicate removal is currently applied to the training partition only, using feature values and target together; held-out test rows are not deduplicated by this operation.</p><p>Ask: What is missing? Would deletion remove important cases? Could an extreme value distort a mean? Are repeated rows meaningful? Which future transformations must be learned only from training data?</p>
+<h3>9. Check your reasoning</h3><ol><li>What evidence supports my missing-data strategy?</li><li>What information might I lose by dropping rows?</li><li>Could duplicates be meaningful rather than accidental?</li><li>What operation is not available here but may matter for my algorithm?</li></ol><p>Use Study Notes to record your justification; these widgets are local illustrations and do not persist responses or alter the pipeline.</p>

@@ -8,6 +8,7 @@ import { getDomTextContent } from './learnTextHighlighting';
 import { HighlightableInlineContent } from './HighlightableInlineContent';
 import { DatasetFeatureTargetWidget, DatasetSplitWidget } from './DatasetLearnWidgets';
 import { DuplicateWidget, MissingValueWidget, OutlierWidget } from './PreprocessingLearnWidgets';
+import { ArrangeWidget, ConnectWidget, DataflowWidget, DebugWidget } from './EdgesLearnWidgets';
 
 // --- DYNAMIC HTML ENGINE ---
 type ContentProps = {
@@ -40,6 +41,10 @@ const DynamicHtmlContent = memo(({ nodeType, notesList, activeReferencedNote }: 
         if (tagName === 'div' && domNode.attribs['data-learn-widget'] === 'missing-values') return <MissingValueWidget />;
         if (tagName === 'div' && domNode.attribs['data-learn-widget'] === 'outlier') return <OutlierWidget />;
         if (tagName === 'div' && domNode.attribs['data-learn-widget'] === 'duplicates') return <DuplicateWidget />;
+        if (tagName === 'div' && domNode.attribs['data-learn-widget'] === 'dataflow') return <DataflowWidget />;
+        if (tagName === 'div' && domNode.attribs['data-learn-widget'] === 'arrange') return <ArrangeWidget />;
+        if (tagName === 'div' && domNode.attribs['data-learn-widget'] === 'connect') return <ConnectWidget />;
+        if (tagName === 'div' && domNode.attribs['data-learn-widget'] === 'debug') return <DebugWidget />;
 
         // --- RULE 2: IMAGES (Keep original HTML styles) ---
         if (tagName === 'img') {

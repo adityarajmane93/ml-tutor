@@ -60,6 +60,9 @@ const DynamicHtmlContent = memo(({ nodeType, notesList, activeReferencedNote }: 
         if (tagName === 'div' && domNode.attribs['data-learn-widget'] === 'arrange') return <ArrangeWidget />;
         if (tagName === 'div' && domNode.attribs['data-learn-widget'] === 'connect') return <ConnectWidget />;
         if (tagName === 'div' && domNode.attribs['data-learn-widget'] === 'debug') return <DebugWidget />;
+        if (tagName === 'div' && domNode.attribs['data-learn-widget'] === 'highlight-practice') return <HighlightPractice />;
+        if (tagName === 'div' && domNode.attribs['data-learn-widget'] === 'annotation-practice') return <AnnotationPractice />;
+        if (tagName === 'div' && domNode.attribs['data-learn-widget'] === 'organization') return <OrganizationWidget />;
 
         // --- RULE 2: IMAGES (Keep original HTML styles) ---
         if (tagName === 'img') {

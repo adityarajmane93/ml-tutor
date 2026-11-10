@@ -8,6 +8,7 @@ import { getDomTextContent } from './learnTextHighlighting';
 import { HighlightableInlineContent } from './HighlightableInlineContent';
 import { DatasetFeatureTargetWidget, DatasetSplitWidget } from './DatasetLearnWidgets';
 import { DuplicateWidget, MissingValueWidget, OutlierWidget } from './PreprocessingLearnWidgets';
+import { KNNWidget, LogisticWidget, TreeWidget, ZeroRWidget } from './ModelLearnWidgets';
 
 // --- DYNAMIC HTML ENGINE ---
 type ContentProps = {
@@ -40,6 +41,10 @@ const DynamicHtmlContent = memo(({ nodeType, notesList, activeReferencedNote }: 
         if (tagName === 'div' && domNode.attribs['data-learn-widget'] === 'missing-values') return <MissingValueWidget />;
         if (tagName === 'div' && domNode.attribs['data-learn-widget'] === 'outlier') return <OutlierWidget />;
         if (tagName === 'div' && domNode.attribs['data-learn-widget'] === 'duplicates') return <DuplicateWidget />;
+        if (tagName === 'div' && domNode.attribs['data-learn-widget'] === 'knn') return <KNNWidget />;
+        if (tagName === 'div' && domNode.attribs['data-learn-widget'] === 'tree') return <TreeWidget />;
+        if (tagName === 'div' && domNode.attribs['data-learn-widget'] === 'logistic') return <LogisticWidget />;
+        if (tagName === 'div' && domNode.attribs['data-learn-widget'] === 'zeror') return <ZeroRWidget />;
 
         // --- RULE 2: IMAGES (Keep original HTML styles) ---
         if (tagName === 'img') {

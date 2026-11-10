@@ -1,31 +1,21 @@
 import { useEffect, useMemo, useState } from "react";
-import type { CSSProperties } from "react";
+import type { CSSProperties, PointerEvent as ReactPointerEvent } from "react";
 import {
   Chart as ChartJS, LinearScale, LineElement, PointElement, Tooltip, Legend,
 } from "chart.js";
 import { Line } from "react-chartjs-2";
 import ResearchAnalysis from "./ResearchAnalysis";
+import ResearchCircumplex from "./ResearchCircumplex";
 import type { ResearchSession, ResearchSessionData } from "../services/researchApi";
 import { getResearchSessionData } from "../services/researchApi";
 import {
-  AFFECT_CENTROIDS, aoiVisits, euclideanDistance, nearestAtOrBefore, nearby,
+  aoiVisits, nearestAtOrBefore, nearby,
   timelineBounds, withObservationTimes, workflowAt, type TimelineEvent,
 } from "../services/researchTimeline";
 import { normalizedWindow, type TimeWindow } from "../services/researchAnalysis";
 import { AFFECT_SERIES_COLORS, WORKFLOW_RECONSTRUCTION_DEFAULT_EXPANDED } from "../services/researchUiConfig";
 
 ChartJS.register(LinearScale, LineElement, PointElement, Tooltip, Legend);
-
-const circumplexBoundary = {
-  id: "circumplexBoundary",
-  afterDraw(chart: any) {
-    const { ctx, chartArea } = chart;
-    if (!chartArea) return;
-    const size = Math.min(chartArea.width, chartArea.height);
-    ctx.save(); ctx.strokeStyle = "#111827"; ctx.lineWidth = 2;
-    ctx.beginPath(); ctx.arc((chartArea.left + chartArea.right) / 2, (chartArea.top + chartArea.bottom) / 2, size / 2, 0, Math.PI * 2); ctx.stroke(); ctx.restore();
-  },
-};
 
 const panel: CSSProperties = { border: "2px solid var(--text)", background: "#fff", padding: 16 };
 const aoiLabels = ["outside", "unknown", "workspace_background", "dataset_node", "preprocessing_node", "model_node", "evaluation_node", "workflow_node", "learn_navigation", "learn_content", "learn_notes", "learn_controls"];
@@ -70,11 +60,12 @@ export default function ResearchDashboard({ researcherKey, session }: { research
   const [showVisits, setShowVisits] = useState(false);
   const [zoomWindowMs, setZoomWindowMs] = useState<number | null>(null);
   const [affectWindow, setAffectWindow] = useState<TimeWindow | null>(null);
+  const [dragStart, setDragStart] = useState<{ timeMs: number; clientX: number } | null>(null);
   const [workflowExpanded, setWorkflowExpanded] = useState(WORKFLOW_RECONSTRUCTION_DEFAULT_EXPANDED);
 
   useEffect(() => {
     let active = true;
-    setLoading(true); setError(""); setData(null); setCursor(null); setSelectedEvent(null); setZoomWindowMs(null); setAffectWindow(null); setWorkflowExpanded(WORKFLOW_RECONSTRUCTION_DEFAULT_EXPANDED);
+    setLoading(true); setError(""); setData(null); setCursor(null); setSelectedEvent(null); setZoomWindowMs(null); setAffectWindow(null); setDragStart(null); setWorkflowExpanded(WORKFLOW_RECONSTRUCTION_DEFAULT_EXPANDED);
     void getResearchSessionData(researcherKey, session.session_id).then((next) => {
       if (!active) return;
       const times = [
@@ -114,7 +105,6 @@ export default function ResearchDashboard({ researcherKey, session }: { research
   const viewEnd = zoomWindowMs === null ? end : Math.min(end, cursor + zoomWindowMs / 2);
   const currentAffectIsContiguous = currentAffect !== null && cursor - currentAffect.timeMs <= 15_000;
   const currentGazeIsContiguous = currentGaze !== null && cursor - currentGaze.timeMs <= 2_000;
-  const currentPoint = currentAffectIsContiguous && currentAffect ? { valence: currentAffect.valence, arousal: currentAffect.arousal, label: "HSEmotion" } : currentSamm ? { valence: currentSamm.valence, arousal: currentSamm.arousal, label: "SAMM" } : null;
   const affectChartData = {
     datasets: [
       series.hValence && { label: "HSEmotion valence", data: affect.map((point) => ({ x: point.timeMs, y: point.valence })), borderColor: AFFECT_SERIES_COLORS.hseValence, pointRadius: 2, pointHitRadius: 12, spanGaps: 15_000 },
@@ -134,23 +124,46 @@ export default function ResearchDashboard({ researcherKey, session }: { research
     setCursor(selectedTime);
     setAffectWindow((current) => current === null ? { startMs: selectedTime, endMs: selectedTime } : normalizedWindow(current.startMs, selectedTime));
   } } as any;
+  const affectSelectionBand = {
+    id: "affectSelectionBand",
+    beforeDatasetsDraw(chart: any) {
+      if (!affectWindow) return;
+      const x = chart.scales.x;
+      const left = x.getPixelForValue(affectWindow.startMs);
+      const right = x.getPixelForValue(affectWindow.endMs);
+      chart.ctx.save();
+      chart.ctx.fillStyle = "rgba(37, 99, 235, 0.16)";
+      chart.ctx.fillRect(Math.min(left, right), chart.chartArea.top, Math.abs(right - left), chart.chartArea.bottom - chart.chartArea.top);
+      chart.ctx.restore();
+    },
+  };
+  const timelineTimeAt = (clientX: number, rect: DOMRect) => viewStart + Math.max(0, Math.min(1, (clientX - rect.left) / rect.width)) * (viewEnd - viewStart);
+  const beginTimelineSelection = (event: ReactPointerEvent<HTMLDivElement>) => {
+    const timeMs = timelineTimeAt(event.clientX, event.currentTarget.getBoundingClientRect());
+    setDragStart({ timeMs, clientX: event.clientX });
+  };
+  const updateTimelineSelection = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (!dragStart) return;
+    const timeMs = timelineTimeAt(event.clientX, event.currentTarget.getBoundingClientRect());
+    setAffectWindow(normalizedWindow(dragStart.timeMs, timeMs));
+  };
+  const finishTimelineSelection = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (!dragStart) return;
+    const timeMs = timelineTimeAt(event.clientX, event.currentTarget.getBoundingClientRect());
+    if (Math.abs(event.clientX - dragStart.clientX) < 6) setCursor(timeMs);
+    else { setAffectWindow(normalizedWindow(dragStart.timeMs, timeMs)); setCursor(timeMs); }
+    setDragStart(null);
+  };
   const aoiData = { datasets: [{ label: "AOI sample", data: gaze.map((sample) => ({ x: sample.timeMs, y: aoiIndex(sample.aoi_type), aoi: sample.aoi_type, id: sample.aoi_id })), borderColor: "#7c3aed", backgroundColor: "#7c3aed", stepped: true, pointRadius: gaze.length > 1500 ? 0 : 2, showLine: true, spanGaps: 2_000 }, { label: "Selected time", data: [{ x: cursor, y: 0 }, { x: cursor, y: aoiLabels.length - 1 }], borderColor: "#111827", borderDash: [4, 4], pointRadius: 0 } ] } as any;
   const aoiOptions = { ...linearTimeOptions, scales: { x: linearTimeOptions.scales.x, y: { min: 0, max: aoiLabels.length - 1, ticks: { callback: (value: string | number) => aoiLabels[Number(value)] ?? "" } } }, plugins: { tooltip: { callbacks: { title: (items: any[]) => items.length ? formatTime(items[0].parsed.x) : "", label: (item: any) => `${item.raw.aoi ?? "selected"}${item.raw.id ? ` · ${item.raw.id}` : ""}` } } } } as any;
-  const circumplexData = { datasets: [
-    { label: "Conceptual reference centroids", data: AFFECT_CENTROIDS.map((centroid) => ({ x: centroid.valence, y: centroid.arousal, emotion: centroid.name })), backgroundColor: "#9ca3af", pointRadius: 5, showLine: false },
-    currentAffectIsContiguous && currentAffect && { label: "HSEmotion observation", data: [{ x: currentAffect.valence, y: currentAffect.arousal, source: "HSEmotion" }], backgroundColor: "#dc2626", pointRadius: 7, showLine: false },
-    currentSamm && { label: "SAMM observation", data: [{ x: currentSamm.valence, y: currentSamm.arousal, source: "SAMM" }], backgroundColor: "#0891b2", pointRadius: 7, pointStyle: "rectRot", showLine: false },
-  ].filter(Boolean) } as any;
-  const circumplexOptions = { responsive: true, maintainAspectRatio: true, aspectRatio: 1, animation: false, parsing: false, scales: { x: { type: "linear", min: -1, max: 1, title: { display: true, text: "Valence" }, grid: { color: (c: any) => c.tick.value === 0 ? "#111827" : "#e5e7eb", lineWidth: (c: any) => c.tick.value === 0 ? 2.5 : 1 } }, y: { min: -1, max: 1, title: { display: true, text: "Arousal" }, grid: { color: (c: any) => c.tick.value === 0 ? "#111827" : "#e5e7eb", lineWidth: (c: any) => c.tick.value === 0 ? 2.5 : 1 } } }, plugins: { tooltip: { callbacks: { label: (item: any) => { const raw = item.raw; const point = { valence: item.parsed.x, arousal: item.parsed.y }; if (raw.emotion) return [`Reference: ${raw.emotion}`, `Valence ${point.valence.toFixed(2)}, Arousal ${point.arousal.toFixed(2)}`]; const nearest = AFFECT_CENTROIDS.map((c) => ({ ...c, distance: euclideanDistance(point.valence, point.arousal, c) })).sort((a,b) => a.distance - b.distance)[0]; return [`${raw.source}: V ${point.valence.toFixed(2)}, A ${point.arousal.toFixed(2)}`, `Nearest reference: ${nearest ? nearest.name : "No sufficiently close reference"}`]; } } } } } as any;
-  const nearestCentroids = currentPoint ? AFFECT_CENTROIDS.map((centroid) => ({ ...centroid, distance: euclideanDistance(currentPoint.valence, currentPoint.arousal, centroid) })).filter((centroid) => centroid.distance <= radius) : [];
 
   return <section style={{ display: "grid", gap: 16, marginTop: 24 }}>
     <div style={panel}><strong>Session:</strong> <code>{session.session_id}</code><p style={{ margin: "8px 0" }}>Cursor: {formatTime(cursor)} · HSEmotion: {affect.length} observations · SAMM: {samm.length} responses · Gaze: {gaze.length} samples · Calibrations: {data.calibrations.length}</p><div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}><button className="counter" style={{ margin: 0 }} onClick={() => setCursor(visibleEvents.filter((event) => event.timeMs < cursor).at(-1)?.timeMs ?? start)}>Previous event</button><button className="counter" style={{ margin: 0 }} onClick={() => setCursor(visibleEvents.find((event) => event.timeMs > cursor)?.timeMs ?? end)}>Next event</button><label>Chart zoom <select value={zoomWindowMs ?? "all"} onChange={(event) => setZoomWindowMs(event.target.value === "all" ? null : Number(event.target.value))}><option value="all">Full session</option><option value={60_000}>1 minute around cursor</option><option value={300_000}>5 minutes around cursor</option></select></label></div><input aria-label="Session time" type="range" min={start} max={end} step={Math.max(1, Math.round((end - start) / 2000))} value={cursor} onChange={(event) => setCursor(Number(event.target.value))} style={{ width: "100%", marginTop: 14 }} /></div>
 
-    <div style={panel}><h2>Affect trajectory</h2><p>HSEmotion observations are connected only across short recorded gaps; SAMM is shown as discrete self-report points. Click two observed points to select an affect-centered interval.</p><div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>{([['hValence','HSE valence'], ['hArousal','HSE arousal'], ['sValence','SAMM valence'], ['sArousal','SAMM arousal']] as const).map(([key, label]) => <label key={key}><input type="checkbox" checked={series[key]} onChange={() => setSeries((current) => ({ ...current, [key]: !current[key] }))} /> {label}</label>)}</div><div style={{ height: 360 }}><Line data={affectChartData} options={affectOptions} /></div></div>
+    <div style={panel}><h2>Affect trajectory</h2><p>HSEmotion observations are connected only across short recorded gaps; SAMM is shown as discrete self-report points. Drag across the timeline to select a time interval.</p><div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>{([['hValence','HSE valence'], ['hArousal','HSE arousal'], ['sValence','SAMM valence'], ['sArousal','SAMM arousal']] as const).map(([key, label]) => <label key={key}><input type="checkbox" checked={series[key]} onChange={() => setSeries((current) => ({ ...current, [key]: !current[key] }))} /> {label}</label>)}</div><div style={{ height: 360, touchAction: "none" }} onPointerDown={beginTimelineSelection} onPointerMove={updateTimelineSelection} onPointerUp={finishTimelineSelection} onPointerCancel={() => setDragStart(null)}><Line data={affectChartData} options={affectOptions} plugins={[affectSelectionBand]} /></div>{affectWindow && <p>Selected interval: {formatTime(affectWindow.startMs)} – {formatTime(affectWindow.endMs)} <button type="button" onClick={() => setAffectWindow(null)}>Clear interval</button></p>}</div>
 
     <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) minmax(320px, 1fr)", gap: 16 }}>
-      <div style={panel}><h2>Learning-centered affect circumplex</h2><p>Reference centroids are exploratory conceptual placements, not emotion classifications or confidence estimates.</p><label>Conceptual proximity radius <select value={radius} onChange={(event) => setRadius(Number(event.target.value))}>{[0.05, 0.1, 0.15].map((value) => <option value={value} key={value}>{value.toFixed(2)}</option>)}</select></label><div style={{ height: 500, maxHeight: "70vw" }}><Line data={circumplexData} options={circumplexOptions} plugins={[circumplexBoundary]} /></div><p>{currentPoint ? `${currentPoint.label} at (${currentPoint.valence.toFixed(2)}, ${currentPoint.arousal.toFixed(2)}).` : "No affect observation at or before this time."}</p><p>Within selected radius: {nearestCentroids.length ? nearestCentroids.map((item) => `${item.name} (${item.distance.toFixed(3)})`).join(", ") : "none"}</p><details><summary>Reference centroid coordinates</summary><ul>{AFFECT_CENTROIDS.map((item) => <li key={item.name}>{item.name}: ({item.valence.toFixed(2)}, {item.arousal.toFixed(2)})</li>)}</ul></details></div>
+      <ResearchCircumplex hseObservation={currentAffectIsContiguous ? currentAffect : null} sammObservation={currentSamm} radius={radius} onRadiusChange={setRadius} />
       <div style={panel}><h2>Current-time observations</h2><p><strong>Gaze AOI:</strong> {currentGazeIsContiguous && currentGaze ? `${currentGaze.aoi_type}${currentGaze.aoi_id ? ` · ${currentGaze.aoi_id}` : ""}` : currentGaze ? `Measurement gap (last sample ${formatTime(currentGaze.timeMs)})` : "No recorded gaze observation"}</p><p><strong>SAMM:</strong> {currentSamm ? `Latest response: V ${currentSamm.valence}, A ${currentSamm.arousal}, D ${currentSamm.dominance}` : "No response at or before cursor"}</p><p><strong>HSEmotion:</strong> {currentAffectIsContiguous && currentAffect ? `V ${currentAffect.valence}, A ${currentAffect.arousal}` : currentAffect ? `Measurement gap (last observation ${formatTime(currentAffect.timeMs)})` : "No observation at or before cursor"}</p><p>Absent modalities are shown as missing; no values are interpolated or inferred.</p></div>
     </div>
 

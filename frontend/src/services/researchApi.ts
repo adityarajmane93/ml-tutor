@@ -27,7 +27,15 @@ async function researchRequest<T>(path: string, researcherKey: string, init: Req
     headers: { "X-Researcher-Key": researcherKey, ...(init.headers ?? {}), ...(init.body ? { "Content-Type": "application/json" } : {}) },
   });
   if (!response.ok) {
-    throw new Error(response.status === 401 ? "Researcher authentication failed." : "Research data could not be loaded.");
+    if (response.status === 401) throw new Error("Researcher authentication failed.");
+    let detail = "";
+    try {
+      const body = await response.json() as { detail?: unknown; message?: unknown };
+      detail = typeof body.detail === "string" ? body.detail : typeof body.message === "string" ? body.message : "";
+    } catch {
+      // Some proxy and server errors have no JSON response body.
+    }
+    throw new Error(`Research request failed (${response.status})${detail ? `: ${detail}` : ""}.`);
   }
   return response.json() as Promise<T>;
 }

@@ -25,6 +25,13 @@ function studyLabel(study: ResearchStudy): string {
   return `${study.name} (${study.study_id ?? "historical"})`;
 }
 
+function sessionDuration(session: ResearchSession): string {
+  const start = Date.parse(session.client_started_at ?? session.server_started_at);
+  const end = Date.parse(session.client_ended_at ?? session.server_ended_at ?? "");
+  if (!Number.isFinite(start) || !Number.isFinite(end) || end < start) return "Unavailable";
+  const seconds = Math.round((end - start) / 1000);
+  return `${Math.floor(seconds / 60)}m ${seconds % 60}s`;
+}
 
 export default function ResearchPage() {
   const [researcherKey, setResearcherKey] = useState("");
@@ -108,7 +115,7 @@ export default function ResearchPage() {
         <label>Study<select value={studyId === undefined ? "" : valueForSelect(studyId)} onChange={(event) => setStudyId(valueFromSelect(event.target.value))} style={{ display: "block", width: "100%" }}><option value="" disabled>Select a study</option>{studies.map((study) => <option key={valueForSelect(study.study_id)} value={valueForSelect(study.study_id)}>{studyLabel(study)} · {study.session_count} sessions</option>)}</select></label>
         <label>Session<select disabled={studyId === undefined} value={selectedSession?.session_id ?? ""} onChange={(event) => setSelectedSession(sessions.find((session) => session.session_id === event.target.value) ?? null)} style={{ display: "block", width: "100%" }}><option value="" disabled>Select a session</option>{sessions.map((session, index) => <option key={session.session_id} value={session.session_id}>{sessionDisplayLabel(session, index)}</option>)}</select></label>
       </div>
-      {selectedSession && <><div style={{ marginTop: 16, padding: 12, border: "2px solid #b91c1c" }}><strong>Delete selected session</strong><p style={{ margin: "6px 0" }}>Deletes this session and its associated records only.</p><button type="button" disabled={loading} onClick={() => void removeSelectedSession()} style={{ color: "#b91c1c" }}>Delete Session</button></div><ResearchDashboard researcherKey={authenticatedKey} session={selectedSession} /></>}
+      {selectedSession && <><section style={{ marginTop: 16, padding: 12, border: "2px solid var(--text)", background: "#fff" }}><strong>Selected session</strong><div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 8, marginTop: 8 }}><span><strong>Study:</strong> {selectedSession.study_id ?? "Unassigned"}</span><span><strong>Participant:</strong> {selectedSession.participant_id ?? "Unassigned"}</span><span><strong>Started:</strong> {new Date(selectedSession.client_started_at ?? selectedSession.server_started_at).toLocaleString()}</span><span><strong>Duration:</strong> {sessionDuration(selectedSession)}</span></div></section><div style={{ marginTop: 16, padding: 12, border: "2px solid #b91c1c" }}><strong>Delete selected session</strong><p style={{ margin: "6px 0" }}>Deletes this session and its associated records only.</p><button type="button" disabled={loading} onClick={() => void removeSelectedSession()} style={{ color: "#b91c1c" }}>Delete Session</button></div><ResearchDashboard researcherKey={authenticatedKey} session={selectedSession} /></>}
     </main>
   );
 }

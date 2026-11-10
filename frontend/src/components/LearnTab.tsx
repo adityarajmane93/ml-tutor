@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, memo } from 'react';
-import parse, { Element, domToReact, type DOMNode } from 'html-react-parser';
+import parse, { Element, type DOMNode } from 'html-react-parser';
 import { useNotesLogic } from '../flow/useNotesLogic';
 import type { SavedNote } from '../flow/useNotesLogic';
 import NotesPanel from './NotesPanel';
@@ -16,6 +16,7 @@ type ContentProps = {
 
 const DynamicHtmlContent = memo(({ nodeType, notesList, activeReferencedNote }: ContentProps) => {
   const [htmlString, setHtmlString] = useState<string>("<p>Loading content...</p>");
+  let blockCounter = 0;
   // Fetch the HTML file matching the active tab
   useEffect(() => {
     fetch(`/content/${nodeType}.html`)
@@ -32,18 +33,6 @@ const DynamicHtmlContent = memo(({ nodeType, notesList, activeReferencedNote }: 
       if (domNode instanceof Element) {
         const tagName = domNode.name;
 
-        // --- RULE 1: HEADINGS (Centered, NO Highlighting) ---
-        if (['h1', 'h2'].includes(tagName)) {
-          //This tells TypeScript "I promise tagName is a valid HTML tag like 'h1'"
-          const Tag = tagName as React.ElementType;
-          return (
-            <Tag style={{ textAlign: 'center', marginTop: '0px', marginBottom: '20px' }}>
-              {/* Passes the text through normally without the HighlightableText engine */}
-              {domToReact(domNode.children as DOMNode[])}
-            </Tag>
-          );
-        }
-
         // --- RULE 2: IMAGES (Keep original HTML styles) ---
         if (tagName === 'img') {
           // Render the image exactly as it is written and styled in the .html file!"
@@ -51,17 +40,18 @@ const DynamicHtmlContent = memo(({ nodeType, notesList, activeReferencedNote }: 
         }
 
         // --- RULE 3: TEXT & LISTS (Justified, WITH Highlighting) ---
-        if (['p', 'li', 'h3', 'h4', 'h5', 'h6'].includes(tagName)) {
+        if (['p', 'li', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6'].includes(tagName)) {
           const Tag = tagName as React.ElementType;
           const children = domNode.children as DOMNode[];
           // This is the same flattened inline text used by browser Ranges, so
           // legacy offsets remain valid even when a child is nested deeply.
           const text = getDomTextContent(children);
           return (
-            <Tag style={{ lineHeight: '1.6', marginBottom: '16px', textAlign: 'left' }}>
+            <Tag data-text-block-id={`block-${blockCounter++}`} style={{ lineHeight: '1.6', marginBottom: '16px', textAlign: ['h1', 'h2'].includes(tagName) ? 'center' : 'left' }}>
               <HighlightableInlineContent
                 nodes={children}
                 text={text}
+                blockId={`block-${blockCounter - 1}`}
                 notesList={notesList}
                 activeReferencedNote={activeReferencedNote}
               />

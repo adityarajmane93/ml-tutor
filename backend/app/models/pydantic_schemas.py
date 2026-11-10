@@ -74,8 +74,7 @@ class NotePayload(BaseModel):
     session_id: str
     node_type: str
     highlighted_text: Optional[str] = None
-    start_index: Optional[int] = None 
-    end_index: Optional[int] = None   
+    highlight_anchor: Optional[Dict] = None
     custom_note: Optional[str] = None
     timestamp: str
 

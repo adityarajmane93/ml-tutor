@@ -1,44 +1,7 @@
 // @vitest-environment jsdom
-
 import { describe, expect, it } from 'vitest';
-import { getRangeOffsetsWithinBlock } from './learnTextHighlighting';
-
-function fixture() {
-  document.body.innerHTML = '<span id="block" data-highlightable-content="true">A <strong>feature</strong> is <em>useful</em>.</span>';
-  const block = document.getElementById('block') as HTMLElement;
-  return {
-    block,
-    before: block.firstChild as Text,
-    strong: block.querySelector('strong')!.firstChild as Text,
-    emphasis: block.querySelector('em')!.firstChild as Text,
-  };
-}
-
-describe('Range offsets in formatted Learn content', () => {
-  it('calculates a selection that ends inside a strong element', () => {
-    const { block, before, strong } = fixture();
-    const range = document.createRange();
-    range.setStart(before, 2);
-    range.setEnd(strong, 4);
-
-    expect(getRangeOffsetsWithinBlock(range, block)).toEqual({ text: 'feat', start: 2, end: 6 });
-  });
-
-  it('calculates a selection that begins inside strong and ends in em', () => {
-    const { block, strong, emphasis } = fixture();
-    const range = document.createRange();
-    range.setStart(strong, 3);
-    range.setEnd(emphasis, 2);
-
-    expect(getRangeOffsetsWithinBlock(range, block)).toEqual({ text: 'ture is us', start: 5, end: 15 });
-  });
-
-  it('calculates a selection across multiple inline elements', () => {
-    const { block, before, emphasis } = fixture();
-    const range = document.createRange();
-    range.setStart(before, 2);
-    range.setEnd(emphasis, 6);
-
-    expect(getRangeOffsetsWithinBlock(range, block)).toEqual({ text: 'feature is useful', start: 2, end: 19 });
-  });
+import { getHighlightAnchorFromRange } from './learnTextHighlighting';
+describe('cross-block Range anchors', () => {
+  it('anchors a forward heading-to-paragraph selection', () => { document.body.innerHTML = '<div id="pane"><h3 data-text-block-id="block-0"><span data-highlightable-content="true">Intuition</span></h3><p data-text-block-id="block-1"><span data-highlightable-content="true">A <strong>dataset</strong> matters.</span></p></div>'; const pane = document.getElementById('pane')!; const heading = pane.querySelector('h3')!.firstChild!.firstChild!; const bold = pane.querySelector('strong')!.firstChild!; const range = document.createRange(); range.setStart(heading, 3); range.setEnd(bold, 4); expect(getHighlightAnchorFromRange(range, pane)).toMatchObject({ start: { blockId: 'block-0', offset: 3 }, end: { blockId: 'block-1', offset: 6 }, selectedText: 'uitionA data' }); });
+  it('rejects selections that leave the reading pane', () => { document.body.innerHTML = '<div id="pane"><p data-text-block-id="block-0"><span data-highlightable-content="true">inside</span></p></div><aside>outside</aside>'; const range = document.createRange(); range.setStart(document.querySelector('#pane span')!.firstChild!, 0); range.setEnd(document.querySelector('aside')!.firstChild!, 3); expect(getHighlightAnchorFromRange(range, document.getElementById('pane')!)).toBeNull(); });
 });

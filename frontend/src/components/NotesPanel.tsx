@@ -1,14 +1,15 @@
 import React, { useEffect, useRef } from 'react';
 import type { SavedNote } from '../flow/useNotesLogic';
+import type { HighlightAnchor } from './learnTextHighlighting';
 import SAMMbar
   from "./SAMMbar"
 
-type HighlightPayload = { text: string; start: number; end: number };
+type HighlightPayload = HighlightAnchor;
 
 type NotesPanelProps = {
   rightPaneRef: React.RefObject<HTMLDivElement | null>;
   notesList: SavedNote[];
-  highlightData: { text: string; start: number; end: number } | null;
+  highlightData: HighlightPayload | null;
   typedNote: string;
   setTypedNote: (val: string) => void;
   handleClearHighlight: () => void;
@@ -74,9 +75,7 @@ export default function NotesPanel({
         return indexA - indexB; 
       }
       // Fallback if text is identical
-      if (a.start_index != null && b.start_index != null) {
-        return a.start_index - b.start_index;
-      }
+      return Number(a.timestamp) - Number(b.timestamp);
     }
 
     // Push highlighted notes above purely typed notes
@@ -218,7 +217,7 @@ export default function NotesPanel({
             X
           </button>
           <p style={{ margin: 0, fontSize: '0.85rem', color: '#1d4ed8', paddingRight: '15px' }}>
-            <strong>Selected:</strong> "{highlightData.text}"
+            <strong>Selected:</strong> "{highlightData.selectedText}"
           </p>
         </div>
       )}

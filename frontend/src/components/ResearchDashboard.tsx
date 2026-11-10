@@ -16,6 +16,18 @@ import { AFFECT_SERIES_COLORS, WORKFLOW_RECONSTRUCTION_DEFAULT_EXPANDED } from "
 
 ChartJS.register(LinearScale, LineElement, PointElement, Tooltip, Legend);
 
+const circumplexBoundary = {
+  id: "circumplexBoundary",
+  afterDraw(chart: any) {
+    const { ctx, chartArea } = chart;
+    if (!chartArea) return;
+    const size = Math.min(chartArea.width, chartArea.height);
+    ctx.save(); ctx.strokeStyle = "#111827"; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.arc((chartArea.left + chartArea.right) / 2, (chartArea.top + chartArea.bottom) / 2, size / 2, 0, Math.PI * 2); ctx.stroke(); ctx.restore();
+  },
+};
+ChartJS.register(circumplexBoundary);
+
 const panel: CSSProperties = { border: "2px solid var(--text)", background: "#fff", padding: 16 };
 const aoiLabels = ["outside", "unknown", "workspace_background", "dataset_node", "preprocessing_node", "model_node", "evaluation_node", "workflow_node", "learn_navigation", "learn_content", "learn_notes", "learn_controls"];
 
@@ -126,11 +138,11 @@ export default function ResearchDashboard({ researcherKey, session }: { research
   const aoiData = { datasets: [{ label: "AOI sample", data: gaze.map((sample) => ({ x: sample.timeMs, y: aoiIndex(sample.aoi_type), aoi: sample.aoi_type, id: sample.aoi_id })), borderColor: "#7c3aed", backgroundColor: "#7c3aed", stepped: true, pointRadius: gaze.length > 1500 ? 0 : 2, showLine: true, spanGaps: 2_000 }, { label: "Selected time", data: [{ x: cursor, y: 0 }, { x: cursor, y: aoiLabels.length - 1 }], borderColor: "#111827", borderDash: [4, 4], pointRadius: 0 } ] } as any;
   const aoiOptions = { ...linearTimeOptions, scales: { x: linearTimeOptions.scales.x, y: { min: 0, max: aoiLabels.length - 1, ticks: { callback: (value: string | number) => aoiLabels[Number(value)] ?? "" } } }, plugins: { tooltip: { callbacks: { title: (items: any[]) => items.length ? formatTime(items[0].parsed.x) : "", label: (item: any) => `${item.raw.aoi ?? "selected"}${item.raw.id ? ` · ${item.raw.id}` : ""}` } } } } as any;
   const circumplexData = { datasets: [
-    { label: "Conceptual reference centroids", data: AFFECT_CENTROIDS.map((centroid) => ({ x: centroid.valence, y: centroid.arousal })), backgroundColor: "#9ca3af", pointRadius: 5, showLine: false },
-    currentAffectIsContiguous && currentAffect && { label: "Current HSEmotion", data: [{ x: currentAffect.valence, y: currentAffect.arousal }], backgroundColor: "#dc2626", pointRadius: 7, showLine: false },
-    currentSamm && { label: "Latest SAMM", data: [{ x: currentSamm.valence, y: currentSamm.arousal }], backgroundColor: "#0891b2", pointRadius: 7, pointStyle: "rectRot", showLine: false },
+    { label: "Conceptual reference centroids", data: AFFECT_CENTROIDS.map((centroid) => ({ x: centroid.valence, y: centroid.arousal, emotion: centroid.name })), backgroundColor: "#9ca3af", pointRadius: 5, showLine: false },
+    currentAffectIsContiguous && currentAffect && { label: "HSEmotion observation", data: [{ x: currentAffect.valence, y: currentAffect.arousal, source: "HSEmotion" }], backgroundColor: "#dc2626", pointRadius: 7, showLine: false },
+    currentSamm && { label: "SAMM observation", data: [{ x: currentSamm.valence, y: currentSamm.arousal, source: "SAMM" }], backgroundColor: "#0891b2", pointRadius: 7, pointStyle: "rectRot", showLine: false },
   ].filter(Boolean) } as any;
-  const circumplexOptions = { responsive: true, maintainAspectRatio: false, animation: false, parsing: false, scales: { x: { type: "linear", min: -1, max: 1, title: { display: true, text: "Valence" } }, y: { min: -1, max: 1, title: { display: true, text: "Arousal" } } }, plugins: { tooltip: { callbacks: { label: (item: any) => `${item.dataset.label}: (${item.parsed.x.toFixed(2)}, ${item.parsed.y.toFixed(2)})` } } } } as any;
+  const circumplexOptions = { responsive: true, maintainAspectRatio: true, aspectRatio: 1, animation: false, parsing: false, scales: { x: { type: "linear", min: -1, max: 1, title: { display: true, text: "Valence" }, grid: { color: (c: any) => c.tick.value === 0 ? "#111827" : "#e5e7eb", lineWidth: (c: any) => c.tick.value === 0 ? 2.5 : 1 } }, y: { min: -1, max: 1, title: { display: true, text: "Arousal" }, grid: { color: (c: any) => c.tick.value === 0 ? "#111827" : "#e5e7eb", lineWidth: (c: any) => c.tick.value === 0 ? 2.5 : 1 } } }, plugins: { tooltip: { callbacks: { label: (item: any) => { const raw = item.raw; const point = { valence: item.parsed.x, arousal: item.parsed.y }; if (raw.emotion) return [`Reference: ${raw.emotion}`, `Valence ${point.valence.toFixed(2)}, Arousal ${point.arousal.toFixed(2)}`]; const nearest = AFFECT_CENTROIDS.map((c) => ({ ...c, distance: euclideanDistance(point.valence, point.arousal, c) })).sort((a,b) => a.distance - b.distance)[0]; return [`${raw.source}: V ${point.valence.toFixed(2)}, A ${point.arousal.toFixed(2)}`, `Nearest reference: ${nearest ? nearest.name : "No sufficiently close reference"}`]; } } } } } as any;
   const nearestCentroids = currentPoint ? AFFECT_CENTROIDS.map((centroid) => ({ ...centroid, distance: euclideanDistance(currentPoint.valence, currentPoint.arousal, centroid) })).filter((centroid) => centroid.distance <= radius) : [];
 
   return <section style={{ display: "grid", gap: 16, marginTop: 24 }}>

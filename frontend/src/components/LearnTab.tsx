@@ -4,103 +4,8 @@ import { useNotesLogic } from '../flow/useNotesLogic';
 import type { SavedNote } from '../flow/useNotesLogic';
 import NotesPanel from './NotesPanel';
 import { logEvent } from '../services/logger';
-
-// --- SHARED TYPES ---
-type HighlightableTextProps = {
-  text: string;
-  notesList: SavedNote[];
-  activeReferencedNote: number | null;
-};
-
-// --- PHASE - THE ENGINE: Exact Index Slicing ---
-const HighlightableText = ({
-  text,
-  notesList,
-  activeReferencedNote,
-}: HighlightableTextProps) => {
-  const validNotes = notesList
-    .filter((n) => {
-      // Ensure the note has the required data
-      if (n.start_index == null || n.end_index == null || !n.highlighted_text) {
-        return false;
-      }
-      
-      // Extract the text from THIS specific paragraph at the note's indices
-      const chunkInThisParagraph = text.substring(n.start_index, n.end_index);
-      
-      // Only apply the highlight if the text perfectly matches the saved note!
-      return chunkInThisParagraph === n.highlighted_text;
-    })
-    .sort((a, b) => (a.start_index || 0) - (b.start_index || 0));
-
-  if (validNotes.length === 0) return <span className="highlight-block">{text}</span>;
-
-  // chunking and mapping logic
-  const chunks: Array<
-    | { isHighlight: true; text: string; id: string }
-    | { isHighlight: false; text: string; id: string }
-  > = [];
-
-  let currentIndex = 0;
-
-  validNotes.forEach((note) => {
-    if (note.start_index! < currentIndex) return;
-
-    if (note.start_index! > currentIndex) {
-      chunks.push({
-        isHighlight: false,
-        text: text.substring(currentIndex, note.start_index!),
-        id: `text-${currentIndex}-${note.start_index!}`,
-      });
-    }
-
-    chunks.push({
-      isHighlight: true,
-      text: text.substring(note.start_index!, note.end_index!),
-      id: String(note.id),
-    });
-
-    currentIndex = note.end_index!;
-  });
-
-  if (currentIndex < text.length) {
-    chunks.push({
-      isHighlight: false,
-      text: text.substring(currentIndex),
-      id: `text-end-${currentIndex}`,
-    });
-  }
-
-  return (
-    <span className="highlight-block">
-      {chunks.map((chunk) =>
-        chunk.isHighlight ? (
-          <mark
-            key={chunk.id}
-            id={`highlight-${chunk.id}`}
-            // --- THE FIX: Add this dynamic class name! ---
-            className={activeReferencedNote === Number(chunk.id) ? 'active-highlight' : 'standard-highlight'}
-            style={{
-              backgroundColor:
-                activeReferencedNote === Number(chunk.id) ? '#fb923c' : '#fef08a',
-              padding: '2px 4px',
-              borderRadius: '4px',
-              color: '#111827',
-              boxShadow: '1px 1px 0px #111827',
-              transition: 'all 0.3s ease',
-              transform:
-                activeReferencedNote === Number(chunk.id) ? 'scale(1.05)' : 'scale(1)',
-            }}
-          >
-            {chunk.text}
-          </mark>
-        ) : (
-          <span key={chunk.id}>{chunk.text}</span>
-        )
-      )}
-    </span>
-  );
-};
+import { getDomTextContent } from './learnTextHighlighting';
+import { HighlightableInlineContent } from './HighlightableInlineContent';
 
 // --- DYNAMIC HTML ENGINE ---
 type ContentProps = {
@@ -146,21 +51,22 @@ const DynamicHtmlContent = memo(({ nodeType, notesList, activeReferencedNote }: 
         }
 
         // --- RULE 3: TEXT & LISTS (Justified, WITH Highlighting) ---
-        if (['p', 'li', 'ul','h3', 'h4', 'h5', 'h6'].includes(tagName)) {
-          const rawText = domToReact(domNode.children as DOMNode[]);
-          
-          if (typeof rawText === 'string') {
-            const Tag = tagName as React.ElementType;
-            return (
-              <Tag style={{ lineHeight: '1.6', marginBottom: '16px', textAlign: 'left' }}>
-                <HighlightableText 
-                  text={rawText} 
-                  notesList={notesList} 
-                  activeReferencedNote={activeReferencedNote} 
-                />
-              </Tag>
-            );
-          }
+        if (['p', 'li', 'h3', 'h4', 'h5', 'h6'].includes(tagName)) {
+          const Tag = tagName as React.ElementType;
+          const children = domNode.children as DOMNode[];
+          // This is the same flattened inline text used by browser Ranges, so
+          // legacy offsets remain valid even when a child is nested deeply.
+          const text = getDomTextContent(children);
+          return (
+            <Tag style={{ lineHeight: '1.6', marginBottom: '16px', textAlign: 'left' }}>
+              <HighlightableInlineContent
+                nodes={children}
+                text={text}
+                notesList={notesList}
+                activeReferencedNote={activeReferencedNote}
+              />
+            </Tag>
+          );
         }
       }
     }
@@ -447,8 +353,10 @@ export default function LearnModal({
                 id="middle-reading-pane"
                 data-aoi-type="learn_content"
                 data-aoi-id={logic.activeTab}
+                tabIndex={0}
                 style={{ flex: '2 1 0', minWidth: 0, overflowY: 'auto', paddingRight: '20px', textAlign: 'left' }}
                 onMouseUp={logic.handleTextSelection}
+                onKeyUp={logic.handleTextSelection}
                 onScroll={handleResourceScroll}
               >
                 {renderContent()}

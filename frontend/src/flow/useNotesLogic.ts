@@ -3,6 +3,7 @@ import axios from 'axios';
 import { logEvent } from '../services/logger';
 import { useSessionStore } from '../store/sessionStore';
 import { devLog } from "./logger"
+import { getRangeOffsetsWithinBlock } from '../components/learnTextHighlighting';
 
 export interface SavedNote {
   id: number;
@@ -285,7 +286,7 @@ export function useNotesLogic(selectedType: string, onClose: () => void) {
 
   useEffect(() => {
     if (activeTab === 'allNotes' || activeReferencedNote === null) return;
-    const element = document.getElementById(`highlight-${activeReferencedNote}`);
+    const element = document.querySelector<HTMLElement>(`[data-highlight-id="${activeReferencedNote}"]`);
     if (element) {
       element.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
@@ -333,23 +334,23 @@ export function useNotesLogic(selectedType: string, onClose: () => void) {
       return;
     }
 
-    let node = selection.anchorNode;
-    let container = node?.nodeType === 3 ? node.parentNode : node;
-    const highlightBlock = (container as HTMLElement)?.closest('.highlight-block');
+    const range = selection.getRangeAt(0);
+    const startNode = range.startContainer.nodeType === Node.TEXT_NODE
+      ? range.startContainer.parentElement
+      : range.startContainer as HTMLElement;
+    const highlightBlock = startNode?.closest<HTMLElement>('[data-highlightable-content="true"]');
 
     if (!highlightBlock) {
       setHighlightData(null);
       return;
     }
 
-    const range = selection.getRangeAt(0);
-    const preSelectionRange = range.cloneRange();
-    preSelectionRange.selectNodeContents(highlightBlock);
-    preSelectionRange.setEnd(range.startContainer, range.startOffset);
-
-    const start = preSelectionRange.toString().length;
-    const selectedString = range.toString();
-    const end = start + selectedString.length;
+    const offsets = getRangeOffsetsWithinBlock(range, highlightBlock);
+    if (!offsets) {
+      setHighlightData(null);
+      return;
+    }
+    const { text: selectedString, start, end } = offsets;
 
     if (selectedString.trim().length > 0) {
       const nextHighlight = { text: selectedString, start, end };

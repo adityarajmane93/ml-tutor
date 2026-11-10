@@ -9,6 +9,7 @@ import { HighlightableInlineContent } from './HighlightableInlineContent';
 import { DatasetFeatureTargetWidget, DatasetSplitWidget } from './DatasetLearnWidgets';
 import { DuplicateWidget, MissingValueWidget, OutlierWidget } from './PreprocessingLearnWidgets';
 import { KNNWidget, LogisticWidget, TreeWidget, ZeroRWidget } from './ModelLearnWidgets';
+import { ArrangeWidget, ConnectWidget, DataflowWidget, DebugWidget } from './EdgesLearnWidgets';
 import { AveragingWidget, ConfusionWidget, ImbalanceWidget, ThresholdWidget } from './EvaluationLearnWidgets';
 import { ArrangeWidget, ConnectWidget, DataflowWidget, DebugWidget } from './EdgesLearnWidgets';
 
@@ -47,6 +48,10 @@ const DynamicHtmlContent = memo(({ nodeType, notesList, activeReferencedNote }: 
         if (tagName === 'div' && domNode.attribs['data-learn-widget'] === 'tree') return <TreeWidget />;
         if (tagName === 'div' && domNode.attribs['data-learn-widget'] === 'logistic') return <LogisticWidget />;
         if (tagName === 'div' && domNode.attribs['data-learn-widget'] === 'zeror') return <ZeroRWidget />;
+        if (tagName === 'div' && domNode.attribs['data-learn-widget'] === 'dataflow') return <DataflowWidget />;
+        if (tagName === 'div' && domNode.attribs['data-learn-widget'] === 'arrange') return <ArrangeWidget />;
+        if (tagName === 'div' && domNode.attribs['data-learn-widget'] === 'connect') return <ConnectWidget />;
+        if (tagName === 'div' && domNode.attribs['data-learn-widget'] === 'debug') return <DebugWidget />;
         if (tagName === 'div' && domNode.attribs['data-learn-widget'] === 'confusion') return <ConfusionWidget />;
         if (tagName === 'div' && domNode.attribs['data-learn-widget'] === 'imbalance') return <ImbalanceWidget />;
         if (tagName === 'div' && domNode.attribs['data-learn-widget'] === 'threshold') return <ThresholdWidget />;

@@ -11,7 +11,8 @@ import { DuplicateWidget, MissingValueWidget, OutlierWidget } from './Preprocess
 import { KNNWidget, LogisticWidget, TreeWidget, ZeroRWidget } from './ModelLearnWidgets';
 import { ArrangeWidget, ConnectWidget, DataflowWidget, DebugWidget } from './EdgesLearnWidgets';
 import { AveragingWidget, ConfusionWidget, ImbalanceWidget, ThresholdWidget } from './EvaluationLearnWidgets';
-import { ArrangeWidget, ConnectWidget, DataflowWidget, DebugWidget } from './EdgesLearnWidgets';
+
+import { HighlightPractice, AnnotationPractice, OrganizationWidget } from './NotesInfoLearnWidgets';
 
 // --- DYNAMIC HTML ENGINE ---
 type ContentProps = {
@@ -56,10 +57,6 @@ const DynamicHtmlContent = memo(({ nodeType, notesList, activeReferencedNote }: 
         if (tagName === 'div' && domNode.attribs['data-learn-widget'] === 'imbalance') return <ImbalanceWidget />;
         if (tagName === 'div' && domNode.attribs['data-learn-widget'] === 'threshold') return <ThresholdWidget />;
         if (tagName === 'div' && domNode.attribs['data-learn-widget'] === 'averaging') return <AveragingWidget />;
-        if (tagName === 'div' && domNode.attribs['data-learn-widget'] === 'dataflow') return <DataflowWidget />;
-        if (tagName === 'div' && domNode.attribs['data-learn-widget'] === 'arrange') return <ArrangeWidget />;
-        if (tagName === 'div' && domNode.attribs['data-learn-widget'] === 'connect') return <ConnectWidget />;
-        if (tagName === 'div' && domNode.attribs['data-learn-widget'] === 'debug') return <DebugWidget />;
         if (tagName === 'div' && domNode.attribs['data-learn-widget'] === 'highlight-practice') return <HighlightPractice />;
         if (tagName === 'div' && domNode.attribs['data-learn-widget'] === 'annotation-practice') return <AnnotationPractice />;
         if (tagName === 'div' && domNode.attribs['data-learn-widget'] === 'organization') return <OrganizationWidget />;

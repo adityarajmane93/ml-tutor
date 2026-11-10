@@ -16,21 +16,21 @@ async def save_note(payload: NotePayload):
         session_id=payload.session_id,
         node_type=payload.node_type,
         highlighted_text=payload.highlighted_text,
-        start_index=payload.start_index, 
-        end_index=payload.end_index,     
+        highlight_anchor=payload.highlight_anchor,
         custom_note=payload.custom_note,
         timestamp=payload.timestamp
     )
     try:
         db.add(db_note)
         db.commit()
+        db.refresh(db_note)
     except Exception as e:
         db.rollback()
         print(f"Failed to save note: {e}")
         return JSONResponse(status_code=500, content={"status": "error"})
     finally:
         db.close()
-    return {"status": "success", "message": "Note saved"}
+    return {"status": "success", "message": "Note saved", "note_id": db_note.id}
 
 @router.get("/")
 def get_notes(session_id: str, node_type: Optional[str] = None):

@@ -3,21 +3,20 @@ import axios from 'axios';
 import { logEvent } from '../services/logger';
 import { useSessionStore } from '../store/sessionStore';
 import { devLog } from "./logger"
-import { getRangeOffsetsWithinBlock } from '../components/learnTextHighlighting';
+import { anchorsOverlap, getHighlightAnchorFromRange, type HighlightAnchor } from '../components/learnTextHighlighting';
 
 export interface SavedNote {
   id: number;
   node_type?: string;
   highlighted_text?: string;
   custom_note?: string;
-  start_index?: number;
-  end_index?: number;
+  highlight_anchor?: HighlightAnchor | null;
   timestamp: string;
 }
 
 export function useNotesLogic(selectedType: string, onClose: () => void) {
   const [activeTab, setActiveTab] = useState(selectedType || 'allNotes');
-  const [highlightData, setHighlightData] = useState<{ text: string; start: number; end: number } | null>(null);
+  const [highlightData, setHighlightData] = useState<HighlightAnchor | null>(null);
   const [typedNote, setTypedNote] = useState('');
   const [notesList, setNotesList] = useState<SavedNote[]>([]);
   const [activeReferencedNote, setActiveReferencedNote] = useState<number | null>(null);
@@ -42,14 +41,14 @@ export function useNotesLogic(selectedType: string, onClose: () => void) {
   useEffect(() => { highlightDataRef.current = highlightData; }, [highlightData]);
 
   // --- LOGGING FUNCTIONS ---
-  const logAbandonedHighlight = async (highlightToLog: {text: string, start: number, end: number}) => {
+  const logAbandonedHighlight = async (highlightToLog: HighlightAnchor) => {
     try {
       await logEvent('LEARN_TAB', 'HIGHLIGHT_ABANDONED', {
         node_type: activeTabRef.current,
         resource_id: activeTabRef.current,
-        highlighted_text: highlightToLog.text,
-        start_index: highlightToLog.start,
-        end_index: highlightToLog.end
+        highlighted_text: highlightToLog.selectedText,
+        start_block_id: highlightToLog.start.blockId, start_offset: highlightToLog.start.offset,
+        end_block_id: highlightToLog.end.blockId, end_offset: highlightToLog.end.offset
       });
     } catch (error) {
       console.error("Failed to log abandoned highlight:", error);
@@ -307,7 +306,7 @@ export function useNotesLogic(selectedType: string, onClose: () => void) {
     // Use a tiny delay to wait for the new HTML page to fully render on the screen,
     //    and to bypass any effects that clear highlights when tabs change!
     setTimeout(() => {
-      if (note.highlighted_text && note.start_index != null && note.end_index != null) {
+      if (note.highlighted_text && note.highlight_anchor) {
         setActiveReferencedNote(note.id);
         
         // page automatically scrolls down to the active text!
@@ -335,38 +334,36 @@ export function useNotesLogic(selectedType: string, onClose: () => void) {
     }
 
     const range = selection.getRangeAt(0);
-    const startNode = range.startContainer.nodeType === Node.TEXT_NODE
-      ? range.startContainer.parentElement
-      : range.startContainer as HTMLElement;
-    const highlightBlock = startNode?.closest<HTMLElement>('[data-highlightable-content="true"]');
-
-    if (!highlightBlock) {
+    const readingPane = document.getElementById('middle-reading-pane');
+    const nextHighlight = readingPane ? getHighlightAnchorFromRange(range, readingPane) : null;
+    if (!nextHighlight) {
       setHighlightData(null);
       return;
     }
-
-    const offsets = getRangeOffsetsWithinBlock(range, highlightBlock);
-    if (!offsets) {
+    if (notesList.some((note) => note.highlight_anchor && anchorsOverlap(nextHighlight, note.highlight_anchor))) {
+      window.alert('Highlights cannot overlap an existing saved passage.');
+      window.getSelection()?.removeAllRanges();
       setHighlightData(null);
       return;
     }
-    const { text: selectedString, start, end } = offsets;
+    const selectedString = nextHighlight.selectedText;
 
     if (selectedString.trim().length > 0) {
-      const nextHighlight = { text: selectedString, start, end };
       const previousHighlight = highlightDataRef.current;
       if (
         !previousHighlight ||
-        previousHighlight.text !== nextHighlight.text ||
-        previousHighlight.start !== nextHighlight.start ||
-        previousHighlight.end !== nextHighlight.end
+        previousHighlight.selectedText !== nextHighlight.selectedText ||
+        previousHighlight.start.blockId !== nextHighlight.start.blockId ||
+        previousHighlight.start.offset !== nextHighlight.start.offset ||
+        previousHighlight.end.blockId !== nextHighlight.end.blockId ||
+        previousHighlight.end.offset !== nextHighlight.end.offset
       ) {
         void logEvent('LEARN_TAB', 'HIGHLIGHT_CREATED', {
           node_type: activeTabRef.current,
           resource_id: activeTabRef.current,
           highlighted_text: selectedString,
-          start_index: start,
-          end_index: end,
+          start_block_id: nextHighlight.start.blockId, start_offset: nextHighlight.start.offset,
+          end_block_id: nextHighlight.end.blockId, end_offset: nextHighlight.end.offset,
         });
       }
       setHighlightData(nextHighlight);
@@ -384,9 +381,8 @@ export function useNotesLogic(selectedType: string, onClose: () => void) {
       const response = await axios.post(`${import.meta.env.VITE_API_URL}/notes/`, {
         session_id: sessionId,
         node_type: activeTab,
-        highlighted_text: highlightData?.text || null,
-        start_index: highlightData?.start ?? null,
-        end_index: highlightData?.end ?? null,
+        highlighted_text: highlightData?.selectedText || null,
+        highlight_anchor: highlightData || null,
         custom_note: typedNote || null,
         timestamp: currentTimestamp,
       });
@@ -394,16 +390,16 @@ export function useNotesLogic(selectedType: string, onClose: () => void) {
       await logEvent('LEARN_TAB', 'NOTE_SAVED', { 
         node_type: activeTab,
         resource_id: activeTab,
-        highlighted_text: highlightData?.text || null,
+        highlighted_text: highlightData?.selectedText || null,
+        highlight_anchor: highlightData || null,
         custom_note: typedNote || null
       });
 
       const newNoteLocal: SavedNote = {
         id: response.data.note_id || Date.now(),
         node_type: activeTab,
-        highlighted_text: highlightData?.text || undefined,
-        start_index: highlightData?.start,
-        end_index: highlightData?.end,
+        highlighted_text: highlightData?.selectedText || undefined,
+        highlight_anchor: highlightData,
         custom_note: typedNote || undefined,
         timestamp: currentTimestamp,
       };

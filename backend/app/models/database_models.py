@@ -123,6 +123,7 @@ class NoteModel(Base):
     highlighted_text = Column(String, nullable=True)
     start_index = Column(Integer, nullable=True) 
     end_index = Column(Integer, nullable=True)   
+    highlight_anchor = Column(JSON, nullable=True)
     custom_note = Column(String, nullable=True)
     timestamp = Column(String)
 

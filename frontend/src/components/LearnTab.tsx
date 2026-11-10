@@ -6,6 +6,7 @@ import NotesPanel from './NotesPanel';
 import { logEvent } from '../services/logger';
 import { getDomTextContent } from './learnTextHighlighting';
 import { HighlightableInlineContent } from './HighlightableInlineContent';
+import { DatasetFeatureTargetWidget, DatasetSplitWidget } from './DatasetLearnWidgets';
 
 // --- DYNAMIC HTML ENGINE ---
 type ContentProps = {
@@ -32,6 +33,9 @@ const DynamicHtmlContent = memo(({ nodeType, notesList, activeReferencedNote }: 
     replace: (domNode: DOMNode) => {
       if (domNode instanceof Element) {
         const tagName = domNode.name;
+
+        if (tagName === 'div' && domNode.attribs['data-learn-widget'] === 'feature-target') return <DatasetFeatureTargetWidget />;
+        if (tagName === 'div' && domNode.attribs['data-learn-widget'] === 'train-test-split') return <DatasetSplitWidget />;
 
         // --- RULE 2: IMAGES (Keep original HTML styles) ---
         if (tagName === 'img') {

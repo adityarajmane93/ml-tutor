@@ -3,6 +3,7 @@ import type { FormEvent } from "react";
 import {
   getSessions,
   getStudies,
+  deleteResearchSession,
   type ResearchSession,
   type ResearchStudy,
 } from "../services/researchApi";
@@ -34,6 +35,14 @@ export default function ResearchPage() {
   const [selectedSession, setSelectedSession] = useState<ResearchSession | null>(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const removeSelectedSession = async () => {
+    if (!authenticatedKey || !selectedSession) return;
+    if (!window.confirm(`Delete session ${selectedSession.session_id}\nStudy: ${selectedSession.study_id ?? "unassigned"}\nAffected data: events, notes, affect, SAMM, rPPG, gaze, calibrations, executions, consent records.\n\nThis cannot be undone.`)) return;
+    setLoading(true); setError("");
+    try { const result = await deleteResearchSession(authenticatedKey, selectedSession.session_id); setSessions((items) => items.filter((item) => item.session_id !== selectedSession.session_id)); setSelectedSession(null); await refreshStudies(); setError(`Deleted session. ${Object.values(result.deleted).reduce((a, b) => a + b, 0)} records removed.`); }
+    catch (reason) { setError(reason instanceof Error ? reason.message : "Session deletion failed; current selection was retained."); }
+    finally { setLoading(false); }
+  };
 
   const refreshStudies = useCallback(async () => {
     if (!authenticatedKey) return;
@@ -99,7 +108,7 @@ export default function ResearchPage() {
         <label>Study<select value={studyId === undefined ? "" : valueForSelect(studyId)} onChange={(event) => setStudyId(valueFromSelect(event.target.value))} style={{ display: "block", width: "100%" }}><option value="" disabled>Select a study</option>{studies.map((study) => <option key={valueForSelect(study.study_id)} value={valueForSelect(study.study_id)}>{studyLabel(study)} · {study.session_count} sessions</option>)}</select></label>
         <label>Session<select disabled={studyId === undefined} value={selectedSession?.session_id ?? ""} onChange={(event) => setSelectedSession(sessions.find((session) => session.session_id === event.target.value) ?? null)} style={{ display: "block", width: "100%" }}><option value="" disabled>Select a session</option>{sessions.map((session, index) => <option key={session.session_id} value={session.session_id}>{sessionDisplayLabel(session, index)}</option>)}</select></label>
       </div>
-      {selectedSession && <ResearchDashboard researcherKey={authenticatedKey} session={selectedSession} />}
+      {selectedSession && <><div style={{ marginTop: 16, padding: 12, border: "2px solid #b91c1c" }}><strong>Delete selected session</strong><p style={{ margin: "6px 0" }}>Deletes this session and its associated records only.</p><button type="button" disabled={loading} onClick={() => void removeSelectedSession()} style={{ color: "#b91c1c" }}>Delete Session</button></div><ResearchDashboard researcherKey={authenticatedKey} session={selectedSession} /></>}
     </main>
   );
 }

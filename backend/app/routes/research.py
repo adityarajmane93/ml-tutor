@@ -12,10 +12,14 @@ from app.core.security import require_researcher_key
 from app.db.db import SessionLocal
 from app.models.database_models import (
     AffectModel,
+    AffectInferenceFailureModel,
+    ConsentFormModel,
     EventModel,
     GazeCalibrationModel,
     GazeSampleModel,
     PipelineExecutionModel,
+    NoteModel,
+    RppgModel,
     SAMMModel,
     StudySessionModel,
     StudyModel,
@@ -57,6 +61,57 @@ def _session_or_404(db: Session, session_id: str) -> StudySessionModel:
     if session is None:
         raise HTTPException(status_code=404, detail="Recorded session not found")
     return session
+
+
+def _delete_session_records(db: Session, session_id: str) -> dict[str, int]:
+    """Delete one session's complete research record; caller owns the transaction."""
+    models = {
+        "events": EventModel, "notes": NoteModel, "affect_logs": AffectModel,
+        "affect_inference_failures": AffectInferenceFailureModel, "samm_records": SAMMModel,
+        "rppg_logs": RppgModel, "gaze_samples": GazeSampleModel,
+        "gaze_calibrations": GazeCalibrationModel, "pipeline_executions": PipelineExecutionModel,
+        "consent_forms": ConsentFormModel,
+    }
+    counts = {name: db.query(model).filter(model.session_id == session_id).delete(synchronize_session=False) for name, model in models.items()}
+    counts["study_sessions"] = db.query(StudySessionModel).filter(StudySessionModel.session_id == session_id).delete(synchronize_session=False)
+    return counts
+
+
+@router.delete("/sessions/{session_id}")
+def delete_session(session_id: str) -> dict[str, Any]:
+    db = SessionLocal()
+    try:
+        _session_or_404(db, session_id)
+        counts = _delete_session_records(db, session_id)
+        db.commit()
+        return {"session_id": session_id, "deleted": counts}
+    except HTTPException:
+        db.rollback(); raise
+    except Exception:
+        db.rollback(); raise HTTPException(status_code=503, detail="Session deletion failed; no records were removed")
+    finally:
+        db.close()
+
+
+@router.delete("/studies/0000/test-data")
+def clear_test_data(confirmation: str = Query(...)) -> dict[str, Any]:
+    if confirmation != "CLEAR 0000":
+        raise HTTPException(status_code=422, detail="Confirmation must exactly match CLEAR 0000")
+    db = SessionLocal()
+    try:
+        ensure_default_study(db)
+        session_ids = [row[0] for row in db.query(StudySessionModel.session_id).filter(StudySessionModel.study_id == DEFAULT_STUDY_ID).all()]
+        total: dict[str, int] = {}
+        for session_id in session_ids:
+            for name, count in _delete_session_records(db, session_id).items(): total[name] = total.get(name, 0) + count
+        db.commit()
+        return {"study_id": DEFAULT_STUDY_ID, "sessions_deleted": len(session_ids), "deleted": total}
+    except HTTPException:
+        db.rollback(); raise
+    except Exception:
+        db.rollback(); raise HTTPException(status_code=503, detail="Test-data cleanup failed; no records were removed")
+    finally:
+        db.close()
 
 
 @router.get("/studies")

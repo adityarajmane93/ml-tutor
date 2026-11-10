@@ -51,6 +51,9 @@ export function startStudy(researcherKey: string, studyId: string): Promise<{ it
 export function stopStudy(researcherKey: string, studyId: string): Promise<{ item: ResearchStudy }> {
   return researchRequest(`/research/studies/${encodeURIComponent(studyId)}/stop`, researcherKey, { method: "POST" });
 }
+export type DeletionResult = { session_id?: string; study_id?: string; sessions_deleted?: number; deleted: Record<string, number> };
+export function deleteResearchSession(researcherKey: string, sessionId: string): Promise<DeletionResult> { return researchRequest(`/research/sessions/${encodeURIComponent(sessionId)}`, researcherKey, { method: "DELETE" }); }
+export function clearTestData(researcherKey: string, confirmation: string): Promise<DeletionResult> { return researchRequest(`/research/studies/0000/test-data?confirmation=${encodeURIComponent(confirmation)}`, researcherKey, { method: "DELETE" }); }
 
 export function getParticipants(researcherKey: string, studyId: string | null): Promise<{ items: ResearchParticipant[] }> {
   return researchRequest(`/research/participants?${nullableScope("study_id", "unassigned_study", studyId)}`, researcherKey);

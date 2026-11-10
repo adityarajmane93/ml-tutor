@@ -9,6 +9,7 @@ import { HighlightableInlineContent } from './HighlightableInlineContent';
 import { DatasetFeatureTargetWidget, DatasetSplitWidget } from './DatasetLearnWidgets';
 import { DuplicateWidget, MissingValueWidget, OutlierWidget } from './PreprocessingLearnWidgets';
 import { AveragingWidget, ConfusionWidget, ImbalanceWidget, ThresholdWidget } from './EvaluationLearnWidgets';
+import { ArrangeWidget, ConnectWidget, DataflowWidget, DebugWidget } from './EdgesLearnWidgets';
 
 // --- DYNAMIC HTML ENGINE ---
 type ContentProps = {
@@ -45,6 +46,10 @@ const DynamicHtmlContent = memo(({ nodeType, notesList, activeReferencedNote }: 
         if (tagName === 'div' && domNode.attribs['data-learn-widget'] === 'imbalance') return <ImbalanceWidget />;
         if (tagName === 'div' && domNode.attribs['data-learn-widget'] === 'threshold') return <ThresholdWidget />;
         if (tagName === 'div' && domNode.attribs['data-learn-widget'] === 'averaging') return <AveragingWidget />;
+        if (tagName === 'div' && domNode.attribs['data-learn-widget'] === 'dataflow') return <DataflowWidget />;
+        if (tagName === 'div' && domNode.attribs['data-learn-widget'] === 'arrange') return <ArrangeWidget />;
+        if (tagName === 'div' && domNode.attribs['data-learn-widget'] === 'connect') return <ConnectWidget />;
+        if (tagName === 'div' && domNode.attribs['data-learn-widget'] === 'debug') return <DebugWidget />;
 
         // --- RULE 2: IMAGES (Keep original HTML styles) ---
         if (tagName === 'img') {

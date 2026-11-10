@@ -12,7 +12,7 @@ import { KNNWidget, LogisticWidget, TreeWidget, ZeroRWidget } from './ModelLearn
 import { ArrangeWidget, ConnectWidget, DataflowWidget, DebugWidget } from './EdgesLearnWidgets';
 import { AveragingWidget, ConfusionWidget, ImbalanceWidget, ThresholdWidget } from './EvaluationLearnWidgets';
 
-import { HighlightPractice, AnnotationPractice, OrganizationWidget } from './NotesInfoLearnWidgets';
+import { HighlightPractice, AnnotationPractice, OrganizationWidget } from './NotesInfoWidgets';
 
 // --- DYNAMIC HTML ENGINE ---
 type ContentProps = {
